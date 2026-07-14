@@ -93,7 +93,14 @@
     "carrito": { "valor": { "x": 177, "y": 147, "w": 340 }, "fuente": "DESIGNED", "evidencia": "anclaje del carrito canon s7 sobre el carrito horneado del fondo-1. Tuning por screenshot (2 iters): con x=144 el comal del sprite centra exacto en (272,460) PERO el carrito pisa el slot 0 de la fila (x=150); con x=177 la fila queda libre (composición del mockup E2) y el comal procedural (ancla de gameplay, con tortillas/pips/glow) queda DENTRO del comal horneado del sprite (~305,445, más grande) — se leen como uno" },
     "cliente_alto_px": { "valor": 112, "fuente": "DESIGNED", "evidencia": "altura de dibujo del cliente (sprite 200px @≈1.8x) — coincide con la silueta procedural del P4 (~92-110px) y la escala del mockup E2" },
     "starter_banda": { "valor": { "x": 208, "y": 518, "w": 322, "h": 118 }, "fuente": "DESIGNED", "evidencia": "cura calibración r2 (hallazgo r2: la Grand Opening en (50,122) tapaba el centro/carrito y colisionaba con los vuelos): banda INFERIOR-derecha — libre de la fila (x≤156), del comal (hitbox x 206-338, y≤510) y de los arcos de billetes al HUD (x≤272); queda sobre el panel de compras (y=648) sin taparlo" },
-    "dpr_max": { "valor": 2, "fuente": "DESIGNED", "evidencia": "fix perf+visual 2026-07-14 (feedback playtest 👤: 'se rompe la calidad de imagen en mi navegador'): el backbuffer fijo 540×960 CSS-escalado se veía BORROSO en retina; ahora backbuffer = tamaño CSS × min(devicePixelRatio, dpr_max). 2 cubre retina sin cuadruplicar de más el fill-rate en pantallas dpr=3" }
+    "dpr_max": { "valor": 2, "fuente": "DESIGNED", "evidencia": "fix perf+visual 2026-07-14 (feedback playtest 👤: 'se rompe la calidad de imagen en mi navegador'): el backbuffer fijo 540×960 CSS-escalado se veía BORROSO en retina; ahora backbuffer = tamaño CSS × min(devicePixelRatio, dpr_max). 2 cubre retina sin cuadruplicar de más el fill-rate en pantallas dpr=3" },
+    "props": { "valor": {
+      "mesa":      { "x": 474, "base": 645, "w": 128 },
+      "plancha":   { "x": 455, "base": 578, "w": 136 },
+      "mostrador": { "x": 300, "base": 636, "w": 160 },
+      "letrero":   { "x": 478, "base": 560, "h": 170 }
+    }, "fuente": "DESIGNED", "evidencia": "LOTE 3 aprobado 👤 (TAQUERIA-C-LOTES.md 2026-07-14, pedido textual: 'cuando colocas un comal se agregue un comal real… y lo mismo para las demás cosas'): posiciones de los props de construcción en la banda de escena del fondo-1 — banqueta derecha en capas letrero(fondo)→plancha→mesa(frente) + mostrador al frente-centro. Anti-colisión verificada por layout (reporte-screenshot-vs-mockup): fila de clientes x≤170 intocada, comal+aro (x 206-358, y≤510) intocado (mostrador arranca y≥519), panel y=648 libre; construcción 0 (COMAL) no lleva prop: su materialización ES el carrito s7 + comal procedural" },
+    "tap_hit_factor": { "valor": 1.4, "fuente": "DESIGNED", "evidencia": "fix UX 👤 2026-07-14 ('el tap al comal no se ve'): hit-area lógica del comal = radio del dibujo × ≥1.4 (banda fitts hybrid-casual; el botón central del juego debe perdonar el pulgar). El click del smoke manual (272,455) queda dentro; sin colisión con hits posteriores (starter/panel ganan en el barrido reverso)" }
   },
   "ritmo": {
     "cooldown_overlay_s": { "valor": 45, "fuente": "DESIGNED", "evidencia": "juez Gemini de ritmo 2026-07-13: gameplay LIBRE garantizado entre interrupciones fullscreen (banda maestros caos 3-4/10)" },
@@ -155,7 +162,16 @@
     "rafaga_zoom": { "valor": 0.05, "fuente": "DESIGNED", "evidencia": "cura r5: zoom-in de cámara del COMBO-BURST (5%, banda 4-6%) — se fija DIRECTO en cam.zoom.x antes del freeze para que el frame congelado ya esté ampliado; el spring lo relaja a 1 al descongelar (punch-out visible en las muestras siguientes)" },
     "rafaga_gap_s": { "valor": 2.0, "fuente": "DESIGNED", "evidencia": "cura r5: separación máxima entre cobros-tap para que la ráfaga siga viva (cubre el hueco cocción 0.35s + vuelo 0.45s + relevo de cliente); un hueco mayor resetea el contador — el combo solo premia ráfagas sostenidas" },
     "confeti_n": { "valor": 130, "fuente": "DESIGNED", "evidencia": "confeti de la renovación" },
-    "pulso_boton_s": { "valor": 0.85, "fuente": "DESIGNED", "evidencia": "cadencia del bounce de botones comprables" }
+    "pulso_boton_s": { "valor": 0.85, "fuente": "DESIGNED", "evidencia": "cadencia del bounce de botones comprables" },
+    "prop_spawn_escala0": { "valor": 0.15, "fuente": "DESIGNED", "evidencia": "LOTE 3 👤 (materialización de props): escala Y inicial del spawn — el prop nace aplastado (X compensa 2-escala, patrón squash táctil del motor) y el spring lo levanta" },
+    "prop_spawn_v": { "valor": 7, "fuente": "DESIGNED", "evidencia": "LOTE 3 👤: velocidad inicial del spring del spawn (spring_k/spring_amort existentes) — energía extra = overshoot visible ~15% antes de asentar, legible incluso a 4fps de muestreo del juez" },
+    "prop_polvo_n": { "valor": 16, "fuente": "DESIGNED", "evidencia": "LOTE 3 👤: partículas de la nube de polvo del aterrizaje (tipo vapor, tonos tierra #d8c09a/#c9b088, se expanden y disipan ~0.7s)" },
+    "prop_spawn_shake": { "valor": 5, "fuente": "DESIGNED", "evidencia": "LOTE 3 👤: micro-shake de cámara al materializarse el prop (entre shake_tap 4.8 y shake_venta 7 — es un evento de compra, no un evento grande)" },
+    "tap_aro_grosor": { "valor": 4, "fuente": "DESIGNED", "evidencia": "fix UX 👤 2026-07-14 'el tap no se ve': grosor px de los rayos cortos del ARO pop-art del comal tapeable (estilo E2: rayos + puntos halftone intercalados, no círculo genérico)" },
+    "tap_aro_hz": { "valor": 1.4, "fuente": "DESIGNED", "evidencia": "fix UX 👤: frecuencia del pulso del aro — 1.4 Hz = urgente sin estrobo (>3 Hz fatiga; <1 Hz no llama); el pulso modula alpha/largo de rayos SIEMPRE visibles (sin fase apagada, lección vip_latido)" },
+    "tap_aro_rayos": { "valor": 10, "fuente": "DESIGNED", "evidencia": "fix UX 👤: N rayos cortos del aro (10 + 10 puntos halftone intercalados alrededor de la elipse del comal); giro lento 0.55 rad/s para atraer la fóvea" },
+    "tap_glow_alpha": { "valor": 0.5, "fuente": "DESIGNED", "evidencia": "fix UX 👤: alpha del GLOW cálido amplio (ámbar) cuando el comal tiene valor por cobrar — taps pagados en progreso (taps>0) o taco completo en cocción (humoT>0); capa aparte del glow naranja de encendido" },
+    "tap_hint_taps": { "valor": 3, "fuente": "DESIGNED", "evidencia": "fix UX 👤: el HINT de mano 👆 del FTUE vive hasta acumular N taps REALES del jugador (persistente en localStorage te_taps_manual — no se repite en la sesión 2)" }
   },
   "demo": {
     "_nota": "Compresiones SOLO del autopilot-demo (?demo=1). La economía real queda fiel; el modo por defecto es juego MANUAL sin nada de esto.",

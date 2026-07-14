@@ -1,5 +1,5 @@
 {
- "_fuente": "LOTE 1 aprobado 👤 (TAQUERIA-C-LOTES.md) — c-lote1 + b3v2 + b3; procesado por tools/preparar_assets.py",
+ "_fuente": "LOTES 1+3 aprobados 👤 (TAQUERIA-C-LOTES.md) — c-lote1 + b3v2 + b3 + c-lote3; procesado por tools/preparar_assets.py",
  "imagenes": {
   "fondo_1": {
    "archivo": "fondo_1.webp",
@@ -133,6 +133,62 @@
    "h": 189,
    "kb": 5.4,
    "origen": "b3v2/icono-salsa-s7.png"
+  },
+  "icono_plancha": {
+   "archivo": "icono_plancha.webp",
+   "w": 72,
+   "h": 64,
+   "kb": 3.1,
+   "origen": "c-lote3/icono-plancha.png"
+  },
+  "icono_mostrador": {
+   "archivo": "icono_mostrador.webp",
+   "w": 72,
+   "h": 72,
+   "kb": 3.4,
+   "origen": "c-lote3/icono-mostrador.png"
+  },
+  "icono_letrero": {
+   "archivo": "icono_letrero.webp",
+   "w": 72,
+   "h": 128,
+   "kb": 3.8,
+   "origen": "c-lote3/icono-letrero.png"
+  },
+  "icono_influencer": {
+   "archivo": "icono_influencer.webp",
+   "w": 72,
+   "h": 71,
+   "kb": 4.0,
+   "origen": "c-lote3/icono-influencer.png"
+  },
+  "prop_mesa": {
+   "archivo": "prop_mesa.webp",
+   "w": 256,
+   "h": 217,
+   "kb": 14.7,
+   "origen": "c-lote3/prop-mesa.png"
+  },
+  "prop_plancha": {
+   "archivo": "prop_plancha.webp",
+   "w": 272,
+   "h": 218,
+   "kb": 15.2,
+   "origen": "c-lote3/prop-plancha.png"
+  },
+  "prop_mostrador": {
+   "archivo": "prop_mostrador.webp",
+   "w": 320,
+   "h": 233,
+   "kb": 20.4,
+   "origen": "c-lote3/prop-mostrador.png"
+  },
+  "prop_letrero": {
+   "archivo": "prop_letrero.webp",
+   "w": 174,
+   "h": 340,
+   "kb": 9.5,
+   "origen": "c-lote3/prop-letrero.png"
   },
   "cli_0": {
    "archivo": "cli_0.webp",

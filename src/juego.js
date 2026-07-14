@@ -63,7 +63,7 @@ if (window.visualViewport)
   window.visualViewport.addEventListener('resize', ()=>{ resDirty = true; });
 /* gradientes cacheados (coords lógicas: el transform S los escala solo) */
 let gradHud = null, gradBarra = null, gradComal = null,
-    gradVipOro = null, gradVipRojo = null, gradAura = null;
+    gradVipOro = null, gradVipRojo = null, gradAura = null, gradGlowTap = null;
 
 /* ---------- flags de URL ---------- */
 const seed = (() => {
@@ -122,8 +122,15 @@ const G = {
   noAds:false, dosx:false, passTier:null,
   skips:0, ofertaTransicionShown:false,
   autopilot: DEMO_MODE, seed, lang,
+  tapsManual:0, tapAroOn:false, tapHintOn:false,   // fix UX 👤 "el tap no se ve"
 };
 window.__game = G;
+
+/* taps REALES acumulados del jugador (fix UX 👤): persistente en localStorage
+   para que el hint de mano del FTUE no se repita en la sesión 2 */
+try {
+  G.tapsManual = parseInt(localStorage.getItem('te_taps_manual') || '0', 10) || 0;
+} catch { /* storage privado/lleno: hint por sesión */ }
 
 const cam = { shake:0, zoom:mkSpring(1) };
 let slowmoHasta = -1;          // simTime hasta el que dura el slow-mo de rescate
@@ -159,6 +166,14 @@ function vapor(x,y,n){
   for(let i=0;i<n;i++)
     parts.push({x:x+(vrng()-0.5)*46, y, vx:(vrng()-0.5)*16, vy:-34-vrng()*30,
       g:-14, t:0, life:0.9+vrng()*0.7, color:'#e8e4da', r:4+vrng()*5, tipo:'vapor'}); }
+/* nube de polvo del aterrizaje de un prop (LOTE 3 👤): tonos tierra, se
+   expande lateral desde la base y se disipa (mismo render tipo 'vapor') */
+function polvo(x,y,n){
+  n = Math.round(n*J.particulas_densidad);
+  for(let i=0;i<n;i++)
+    parts.push({x:x+(vrng()-0.5)*60, y:y-4-vrng()*10, vx:(vrng()-0.5)*130,
+      vy:-20-vrng()*50, g:-30, t:0, life:0.5+vrng()*0.4,
+      color: vrng()<0.5? '#d8c09a' : '#c9b088', r:3.5+vrng()*4.5, tipo:'vapor'}); }
 const confetti = [];
 function dropConfetti(n){
   for(let i=0;i<(n||J.confeti_n);i++) confetti.push({x:vrng()*W, y:-20-vrng()*380,
@@ -184,9 +199,25 @@ function tierDef(nivelTanda){
     nivelTanda===2 ? [E.construcciones_tier2_costos, STR('constr_tier2'), LOCS_T2] :
                      [E.construcciones_tier3_costos, STR('constr_tier3'), LOCS_T3];
   return costos.map((c,i)=>({ n:nombres[i], c, loc:locs[i],
-    comprada:false, sc:mkSpring(1), pulsoT:0 }));
+    comprada:false, sc:mkSpring(1), pulsoT:0, propSc:mkSpring(1) }));
 }
 let construcciones = tierDef(1);
+
+/* ---------- props de construcción en escena (LOTE 3 aprobado 👤) -----------
+   Pedido textual 👤 (playtest 2026-07-14): "cuando colocas un comal se agregue
+   un comal real como animación y lo mismo para las demás cosas". La compra se
+   MATERIALIZA: sprite del prop en la banda de escena con spawn squash+
+   overshoot (spring de los knobs existentes) + nube de polvo + micro-shake.
+   - Mapeo por índice de la tanda 1 (COMAL,MESA,PLANCHA,MOSTRADOR,LETRERO):
+     la construcción 0 no lleva prop (su materialización ES el carrito s7 +
+     comal procedural, ancla de gameplay).
+   - Solo NIVEL 1: los props del lote 3 se generaron con la perspectiva del
+     fondo-1 (registro C-LOTES); en locales 2/3 el local horneado del fondo
+     lleva la infraestructura. El modelo de datos manda: la renovación
+     resetea construcciones (tierDef nuevo) → los props respetan ese reset.
+   - Posiciones/tamaños = config §visual.props (jamás hardcodeados). */
+const PROP_KEYS = [null, 'mesa', 'plancha', 'mostrador', 'letrero'];
+const PROP_ORDEN = [4, 2, 3, 1];   // orden pintor: letrero(fondo)→plancha→mostrador→mesa
 
 const NOMBRES_MEJORAS = STR('mejoras');
 let mejoras = E.mejoras_costos_base.map((base,i)=>({
@@ -237,9 +268,24 @@ function comprar(c){
   G.lastCompraT = G.simTime;
   TELE.evento('compra_soft', { item:c.n, costo:c.c, moneda:'billetes' });
   c.sc.x = 1.35; c.sc.v = -4;
-  burst(c.loc[0], c.loc[1], 18, '#ffd700', 190);
-  burst(c.loc[0], c.loc[1], 8, '#4caf50', 140);
-  pop('¡'+c.n+'!', c.loc[0], c.loc[1]-30, 24, '#4caf50');
+  // ★ MATERIALIZACIÓN del prop (LOTE 3 👤): spawn aplastado→overshoot por el
+  //   spring base + nube de polvo en la base + micro-shake. El feedback de
+  //   compra (burst dorado + pop del nombre) se muda AL prop: la compra se ve
+  //   DONDE aparece la cosa comprada, no en el punto legacy del gray-box.
+  const idx = construcciones.indexOf(c);
+  const propKey = (G.nivel === 1 && idx >= 1) ? PROP_KEYS[idx] : null;
+  let fx = c.loc[0], fy = c.loc[1];
+  if (propKey){
+    const P = V.props[propKey];
+    c.propSc.x = J.prop_spawn_escala0;
+    c.propSc.v = J.prop_spawn_v;
+    polvo(P.x, P.base, J.prop_polvo_n);
+    cam.shake = Math.max(cam.shake, J.prop_spawn_shake);
+    fx = P.x; fy = P.base - 46;
+  }
+  burst(fx, fy, 18, '#ffd700', 190);
+  burst(fx, fy, 8, '#4caf50', 140);
+  pop('¡'+c.n+'!', fx, fy-30, 24, '#4caf50');
   cam.shake = Math.max(cam.shake, 3);
 }
 /* cap de nivel de estación por local (n20): 25→50→75→150; local 5+ = 150 */
@@ -518,6 +564,12 @@ function tapComal(){
   if (!construcciones[0].comprada && G.nivel===1) return; // sin comal no hay tacos
   const front = fila[0];
   if (!front || front.estado!=='espera' || comal.humoT>0 || G.state!=='juego') return;
+  // contador de taps REALES del jugador (fix UX 👤): apaga el hint de mano
+  // del FTUE a los tap_hint_taps; persistente (localStorage) para sesión 2
+  if (!G.autopilot && G.tapsManual < J.tap_hint_taps + 1){
+    G.tapsManual++;
+    try { localStorage.setItem('te_taps_manual', String(G.tapsManual)); } catch {}
+  }
   comal.taps += comalTurbo() ? E.comal_turbo_taps : 1;
   // squash direccional + hit-stop + micro-shake en CADA tap (el clicker SE SIENTE)
   comal.sy.x = J.squash_tap; comal.sx.x = 1/J.squash_tap;
@@ -695,6 +747,7 @@ function update(dt){
   const postRenovCalma = G.renovaciones>0 &&
     G.simTime - G.renovT < R.post_renov_calma_s + R.renov_dur_s;
   for (const c of construcciones){ stepSpring(c.sc, J.spring_k, J.spring_amort, dt);
+    stepSpring(c.propSc, J.spring_k, J.spring_amort, dt);   // spawn del prop (LOTE 3)
     if (!c.comprada && G.billetes>=c.c && !postRenovCalma){ c.pulsoT += dt;
       if (c.pulsoT > J.pulso_boton_s){ c.pulsoT = 0; c.sc.v += 2.4; } } }
   for (const m of mejoras){ stepSpring(m.sc, J.spring_k, J.spring_amort, dt);
@@ -1050,6 +1103,7 @@ function render(){
   ctx.translate(W/2 + shx, 430 + shy); ctx.scale(z, z); ctx.translate(-W/2, -430);
 
   drawPuesto();
+  drawProps();   // props de construcción materializados (LOTE 3 👤)
   // clientes: primero los de cola (orden), al final los que salen (delante)
   for (const c of clientes) if (c.estado!=='sale') drawCliente(c);
   drawComal();
@@ -1250,14 +1304,64 @@ function drawPuesto(){
   }
 }
 
+/* ---------- props de construcción materializados (LOTE 3 aprobado 👤) ------
+   Cada construcción comprada de la tanda 1 (índices 1-4) vive EN la escena.
+   El spawn (comprar→spring aplastado→overshoot→asienta) persiste mientras la
+   construcción siga comprada; la renovación regenera la tanda (comprada=false)
+   y el prop desaparece con ella — el prop obedece el modelo de datos. */
+function drawProps(){
+  if (G.nivel !== 1) return;     // perspectiva del fondo-1 (registro C-LOTES)
+  for (const i of PROP_ORDEN){
+    const c = construcciones[i];
+    if (!c || !c.comprada) continue;
+    const key = PROP_KEYS[i], P = V.props[key], im = IMG['prop_' + key];
+    const w = P.w != null ? P.w : P.h * im.width / im.height;
+    const h = P.h != null ? P.h : P.w * im.height / im.width;
+    const sy = c.propSc.x, sx = clamp(2 - sy, 0.6, 1.4);   // squash del spawn
+    ctx.save();
+    // sombra procedural pegada al piso (el flood-fill del pipeline come la
+    // sombra horneada del render; ésta es consistente con la de los clientes)
+    ctx.globalAlpha = 0.3 * clamp(sy, 0, 1);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(P.x, P.base - 2, w*0.42*sx, w*0.1, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.translate(P.x, P.base);
+    ctx.scale(sx, sy);
+    ctx.drawImage(im, -w/2, -h, w, h);
+    ctx.restore();
+  }
+}
+
 /* ---------- el comal: disco con glow, tortillas y pips de progreso ---------- */
 function drawComal(){
   const on = G.nivel>=2 || comprada(0);
+  // ¿el comal es TAPEABLE ahora mismo? (mismos guards de tapComal) — manda el
+  // ARO pop-art del fix UX 👤 "el tap no se ve" y alimenta el smoke fail-closed
+  const front1 = fila[0];
+  const tapeable = on && front1 && front1.estado==='espera' && comal.humoT<=0 &&
+    G.state==='juego' && !tienda.abierta && !mid.abierta && !wb.visible &&
+    !ads.overlay;
+  G.tapAroOn = tapeable;
   ctx.save();
   ctx.translate(COMAL.x, COMAL.y);
   // cura r3: el pop de escala (1→1.12→1) multiplica el squash direccional —
   // el flash y las líneas radiales viven DENTRO del transform (flash más grande)
   ctx.scale(comal.sx.x*comal.pop.x, comal.sy.x*comal.pop.x);
+  // GLOW cálido de cobro (fix UX 👤): el comal tiene VALOR por cobrar — taps
+  // pagados en progreso o taco completo cociéndose. Capa ámbar amplia bajo el
+  // glow naranja de encendido; alpha desde config (tap_glow_alpha).
+  if (on && (comal.taps>0 || comal.humoT>0)){
+    if (!gradGlowTap){
+      gradGlowTap = ctx.createRadialGradient(0,0,COMAL.rx*0.5, 0,0,COMAL.rx*2.05);
+      gradGlowTap.addColorStop(0,'rgba(255,196,90,0.55)');
+      gradGlowTap.addColorStop(1,'rgba(255,196,90,0)');
+    }
+    ctx.fillStyle = gradGlowTap;
+    ctx.globalAlpha = J.tap_glow_alpha * (0.75 + 0.25*Math.sin(G.simTime*4.2));
+    ctx.beginPath(); ctx.ellipse(0,0,COMAL.rx*2.05,COMAL.ry*2.6,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
   // glow del borde (pulso)
   if (on){
     // gradiente cacheado a alpha fija; el pulso vive en globalAlpha (mismo
@@ -1289,6 +1393,34 @@ function drawComal(){
     ctx.setLineDash([6,6]); ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.ellipse(0,0,COMAL.rx,COMAL.ry,0,0,Math.PI*2); ctx.stroke();
     ctx.setLineDash([]);
+  }
+  // ★ ARO pop-art del comal TAPEABLE (fix UX 👤 "el tap no se ve"): rayos
+  // cortos estilo cómic E2 + puntos halftone intercalados alrededor de la
+  // elipse — no un círculo genérico. Pulsa (tap_aro_hz) modulando alpha y
+  // largo SIN fase apagada (lección vip_latido: toda muestra a 4fps lo ve)
+  // y gira lento para atraer la fóvea. Grosor/frecuencia/rayos de config.
+  if (tapeable){
+    const ph = 0.5 + 0.5*Math.sin(G.simTime * J.tap_aro_hz * Math.PI*2);
+    const n = J.tap_aro_rayos, ky = COMAL.ry/COMAL.rx;
+    const rot = G.simTime * 0.55;
+    ctx.lineWidth = J.tap_aro_grosor; ctx.lineCap = 'round';
+    for (let i=0;i<n;i++){
+      const a = rot + i*Math.PI*2/n;
+      const r0 = COMAL.rx*1.32 + 5*ph, r1 = r0 + 9 + 7*ph;
+      ctx.strokeStyle = i%2
+        ? `rgba(255,213,74,${0.5+0.5*ph})`
+        : `rgba(255,107,53,${0.55+0.45*ph})`;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*r0, Math.sin(a)*r0*ky);
+      ctx.lineTo(Math.cos(a)*r1, Math.sin(a)*r1*ky);
+      ctx.stroke();
+      const am = a + Math.PI/n, rm = r1 + 6;    // punto halftone intercalado
+      ctx.fillStyle = `rgba(255,244,214,${0.3+0.4*ph})`;
+      ctx.beginPath();
+      ctx.arc(Math.cos(am)*rm, Math.sin(am)*rm*ky, 2.1+1.1*ph, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.lineCap = 'butt';
   }
   // tortillas según progreso de taps
   for (let i=0;i<comal.taps;i++){
@@ -1365,8 +1497,37 @@ function drawComal(){
       ctx.fillText(STR('tap_hint'), COMAL.x, COMAL.y-56);
     }
   }
-  hit(COMAL.x-COMAL.rx-14, COMAL.y-COMAL.ry-30, (COMAL.rx+14)*2, (COMAL.ry+30)*2,
-      ()=> tapComal());
+  // ★ HINT de mano 👆 del FTUE (fix UX 👤): visible hasta acumular
+  // tap_hint_taps taps REALES del jugador (persistente en localStorage —
+  // sesión 2 no lo repite). La mano "presiona" hacia el comal en ciclo.
+  const hintOn = !G.autopilot && tapeable && G.tapsManual < J.tap_hint_taps;
+  G.tapHintOn = hintOn;
+  if (hintOn){
+    const k = 0.5 + 0.5*Math.sin(G.simTime*2.6*Math.PI);   // 0=alto 1=presiona
+    const hx = COMAL.x + 54 - 10*k, hy = COMAL.y + 58 - 22*k;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,244,214,0.85)';               // sticker de fondo
+    ctx.beginPath(); ctx.arc(hx, hy-12, 28, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(26,26,46,0.8)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(hx, hy-12, 28, 0, Math.PI*2); ctx.stroke();
+    if (k > 0.82){                                          // ripple del toque
+      ctx.strokeStyle = `rgba(255,213,74,${(k-0.82)/0.18*0.9})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(COMAL.x, COMAL.y, COMAL.rx*1.5, COMAL.ry*1.5, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.font = '900 44px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('👆', hx, hy+4);
+    ctx.restore();
+  }
+  // HIT-AREA generosa (fix UX 👤): radio lógico = dibujo × tap_hit_factor
+  // (≥1.4, config §visual) — EL botón del juego perdona el pulgar. El click
+  // del smoke manual (272,455) sigue dentro; los hits posteriores (starter,
+  // panel, HUD) ganan en el barrido reverso, sin colisión.
+  const HF = V.tap_hit_factor;
+  hit(COMAL.x-COMAL.rx*HF-14, COMAL.y-COMAL.ry*HF-34,
+      (COMAL.rx*HF+14)*2, (COMAL.ry*HF+34)*2, ()=> tapComal());
 }
 
 /* ---------- clientes: siluetas con walk-cycle de curvas ---------- */
@@ -1631,8 +1792,15 @@ function drawPanel(){
   ctx.font='800 11px Arial'; ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.textAlign='left';
   ctx.fillText(G.nivel===1? STR('constr_h_n1') : STR('constr_h_n2'), 14, py+18);
   const cw=96, ch=82, gap=8, x0=14, cy=py+26;
-  // iconos LOTE 1 por posición de la tanda (los que faltan = LOTE 3 pendiente)
-  const ICONOS_CONSTR = ['icono_comal','icono_mesa',null,null,null];
+  // iconos por TANDA (LOTE 3 👤: las placas PLANCHA/MOSTRADOR/LETRERO dejan
+  // de estar sin arte); tier 2/3 reusan el glyph semánticamente más cercano
+  // (el texto de la placa nombra la construcción; el glyph es pictograma)
+  const ICONOS_TIERS = [
+    ['icono_comal','icono_mesa','icono_plancha','icono_mostrador','icono_letrero'],
+    ['icono_letrero','icono_mesa','icono_mostrador','icono_plancha','icono_mesa'],
+    ['icono_letrero','icono_mesa','icono_mostrador','icono_plancha','icono_letrero'],
+  ];
+  const ICONOS_CONSTR = ICONOS_TIERS[G.renovaciones===0 ? 0 : (G.renovaciones===1 ? 1 : 2)];
   construcciones.forEach((c,i)=>{
     const x = x0 + i*(cw+gap);
     const afford = !c.comprada && G.billetes>=c.c;
@@ -1714,10 +1882,10 @@ function drawPanel(){
         STR('slot_influencer_sub',{n:E.influencer_gema_recompensa}):STR('slot_pronto'),
       on: G.simTime>=ads.influencerNextT, col:'#7ee0ff', fn: ()=> verAd('influencer') },
   ];
-  // placas + iconos de los slots (paleta del mockup E2)
+  // placas + iconos de los slots (paleta del mockup E2; influencer = LOTE 3)
   const SLOT_SKIN = [
     ['placa_roja','icono_salsa'], ['placa_mostaza','icono_comal'],
-    ['placa_turquesa','icono_taco_billetes'], ['placa_turquesa',null]];
+    ['placa_turquesa','icono_taco_billetes'], ['placa_turquesa','icono_influencer']];
   slots.forEach((s,i)=>{
     const x = 13 + i*(aw+6);
     const puls = s.on ? 1+0.03*Math.sin(G.simTime*7+i) : 1;
@@ -2046,7 +2214,7 @@ function precalentar(){
   ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 0.01;
   for (const k in IMG) ctx.drawImage(IMG[k], 0, 0, 8, 8);   // upload de texturas
   const MUESTRA = '0123456789$+-×.,:/()%¡!ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-    'abcdefghijklmnñopqrstuvwxyzáéíóú💎📺⭐🛒🎟️🌮✕';
+    'abcdefghijklmnñopqrstuvwxyzáéíóú💎📺⭐🛒🎟️🌮✕👆';
   const PESOS = { 600:[9,10], 700:[10,11,12,13,15], 800:[11,12,13,14,15,18],
     900:[11,12,13,14,15,16,17,18,20,22,24,26,28,30,34,44,46,50,54] };
   ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.lineJoin = 'round';
@@ -2095,6 +2263,9 @@ G.dbg = {
   permEstado: ()=> mid.perms.map(p=>({key:p.key, comprado:p.comprado})),
   freeCashListo: ()=> G.simTime >= mid.freeCashListoT,
   ofertaTransVisible: ()=> ofertaTrans.visible,
+  // LOTE 3 (smoke fail-closed de la materialización + aro del tap)
+  propScale: (i)=> construcciones[i] ? construcciones[i].propSc.x : 0,
+  salientes: ()=> clientes.filter(c=>c.estado==='sale').length,
 };
 
 return { G, resumen };

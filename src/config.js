@@ -42,6 +42,7 @@ const REQUERIDAS = {
   ],
   visual: [
     'hud_estilo', 'carrito', 'cliente_alto_px', 'starter_banda', 'dpr_max',
+    'props', 'tap_hit_factor',
   ],
   ritmo: [
     'cooldown_overlay_s', 'cooldown_overlay_demo_s', 'renov_dur_s',
@@ -63,6 +64,9 @@ const REQUERIDAS = {
     'rafaga_cada_n', 'rafaga_freeze_s', 'rafaga_zoom', 'rafaga_gap_s',
     'pop_rise', 'pop_impulso', 'pop_gravedad', 'pop_arco_vx', 'pop_rekick_mult',
     'confeti_n', 'pulso_boton_s',
+    'prop_spawn_escala0', 'prop_spawn_v', 'prop_polvo_n', 'prop_spawn_shake',
+    'tap_aro_grosor', 'tap_aro_hz', 'tap_aro_rayos', 'tap_glow_alpha',
+    'tap_hint_taps',
   ],
   demo: [
     'accel_clientes', 'dur_post_renov_s', 'starter_reshow_s', 'tienda_open_t',

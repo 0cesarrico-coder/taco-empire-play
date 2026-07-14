@@ -1,5 +1,5 @@
 {
- "_fuente": "LOTES 1+3 aprobados 👤 (TAQUERIA-C-LOTES.md) — c-lote1 + b3v2 + b3 + c-lote3; procesado por tools/preparar_assets.py",
+ "_fuente": "LOTES 1+3 + RONDA FULL lote 2 aprobados 👤 (TAQUERIA-C-LOTES.md) — c-lote1 + b3v2 + b3 + c-lote3 + c-lote2-v2 (walk-cycles cli_N_w1..w8, cli_3 flip horneado); procesado por tools/preparar_assets.py",
  "imagenes": {
   "fondo_1": {
    "archivo": "fondo_1.webp",
@@ -273,6 +273,230 @@
    "h": 200,
    "kb": 8.1,
    "origen": "b3v2/cliente-b-aburrido-s77.png"
+  },
+  "cli_0_w1": {
+   "archivo": "cli_0_w1.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 9.3,
+   "origen": "c-lote2-v2/cli_0/full/frames/f1.png"
+  },
+  "cli_0_w2": {
+   "archivo": "cli_0_w2.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 8.6,
+   "origen": "c-lote2-v2/cli_0/full/frames/f2.png"
+  },
+  "cli_0_w3": {
+   "archivo": "cli_0_w3.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 7.2,
+   "origen": "c-lote2-v2/cli_0/full/frames/f3.png"
+  },
+  "cli_0_w4": {
+   "archivo": "cli_0_w4.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 9.0,
+   "origen": "c-lote2-v2/cli_0/full/frames/f4.png"
+  },
+  "cli_0_w5": {
+   "archivo": "cli_0_w5.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 9.8,
+   "origen": "c-lote2-v2/cli_0/full/frames/f5.png"
+  },
+  "cli_0_w6": {
+   "archivo": "cli_0_w6.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 9.0,
+   "origen": "c-lote2-v2/cli_0/full/frames/f6.png"
+  },
+  "cli_0_w7": {
+   "archivo": "cli_0_w7.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 7.2,
+   "origen": "c-lote2-v2/cli_0/full/frames/f7.png"
+  },
+  "cli_0_w8": {
+   "archivo": "cli_0_w8.webp",
+   "w": 105,
+   "h": 200,
+   "kb": 9.1,
+   "origen": "c-lote2-v2/cli_0/full/frames/f8.png"
+  },
+  "cli_1_w1": {
+   "archivo": "cli_1_w1.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 8.7,
+   "origen": "c-lote2-v2/cli_1/full/frames/f1.png"
+  },
+  "cli_1_w2": {
+   "archivo": "cli_1_w2.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 7.6,
+   "origen": "c-lote2-v2/cli_1/full/frames/f2.png"
+  },
+  "cli_1_w3": {
+   "archivo": "cli_1_w3.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 7.0,
+   "origen": "c-lote2-v2/cli_1/full/frames/f3.png"
+  },
+  "cli_1_w4": {
+   "archivo": "cli_1_w4.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 8.9,
+   "origen": "c-lote2-v2/cli_1/full/frames/f4.png"
+  },
+  "cli_1_w5": {
+   "archivo": "cli_1_w5.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 9.4,
+   "origen": "c-lote2-v2/cli_1/full/frames/f5.png"
+  },
+  "cli_1_w6": {
+   "archivo": "cli_1_w6.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 8.3,
+   "origen": "c-lote2-v2/cli_1/full/frames/f6.png"
+  },
+  "cli_1_w7": {
+   "archivo": "cli_1_w7.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 6.9,
+   "origen": "c-lote2-v2/cli_1/full/frames/f7.png"
+  },
+  "cli_1_w8": {
+   "archivo": "cli_1_w8.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 8.2,
+   "origen": "c-lote2-v2/cli_1/full/frames/f8.png"
+  },
+  "cli_2_w1": {
+   "archivo": "cli_2_w1.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 9.8,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f1.png"
+  },
+  "cli_2_w2": {
+   "archivo": "cli_2_w2.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 9.0,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f2.png"
+  },
+  "cli_2_w3": {
+   "archivo": "cli_2_w3.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 8.4,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f3.png"
+  },
+  "cli_2_w4": {
+   "archivo": "cli_2_w4.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 10.0,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f4.png"
+  },
+  "cli_2_w5": {
+   "archivo": "cli_2_w5.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 10.8,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f5.png"
+  },
+  "cli_2_w6": {
+   "archivo": "cli_2_w6.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 9.9,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f6.png"
+  },
+  "cli_2_w7": {
+   "archivo": "cli_2_w7.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 8.2,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f7.png"
+  },
+  "cli_2_w8": {
+   "archivo": "cli_2_w8.webp",
+   "w": 104,
+   "h": 200,
+   "kb": 9.0,
+   "origen": "c-lote2-v2/cli_2/brazoA2/frames/f8.png"
+  },
+  "cli_3_w1": {
+   "archivo": "cli_3_w1.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 10.0,
+   "origen": "c-lote2-v2/cli_3/full/frames/f1.png (flip)"
+  },
+  "cli_3_w2": {
+   "archivo": "cli_3_w2.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 9.7,
+   "origen": "c-lote2-v2/cli_3/full/frames/f2.png (flip)"
+  },
+  "cli_3_w3": {
+   "archivo": "cli_3_w3.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 8.4,
+   "origen": "c-lote2-v2/cli_3/full/frames/f3.png (flip)"
+  },
+  "cli_3_w4": {
+   "archivo": "cli_3_w4.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 9.4,
+   "origen": "c-lote2-v2/cli_3/full/frames/f4.png (flip)"
+  },
+  "cli_3_w5": {
+   "archivo": "cli_3_w5.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 9.7,
+   "origen": "c-lote2-v2/cli_3/full/frames/f5.png (flip)"
+  },
+  "cli_3_w6": {
+   "archivo": "cli_3_w6.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 9.1,
+   "origen": "c-lote2-v2/cli_3/full/frames/f6.png (flip)"
+  },
+  "cli_3_w7": {
+   "archivo": "cli_3_w7.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 7.8,
+   "origen": "c-lote2-v2/cli_3/full/frames/f7.png (flip)"
+  },
+  "cli_3_w8": {
+   "archivo": "cli_3_w8.webp",
+   "w": 95,
+   "h": 200,
+   "kb": 9.2,
+   "origen": "c-lote2-v2/cli_3/full/frames/f8.png (flip)"
   }
  }
 }

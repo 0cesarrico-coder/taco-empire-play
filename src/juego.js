@@ -538,8 +538,9 @@ const vipRestanteS = ()=> (vip && vip.estado==='espera' && G.vipActive)
    COMBO-BURST. El tap normal (sin booster) jamás entra aquí. */
 const rafaga = { n:0, lastT:-99 };
 
+let cliUid = 0;   // identidad estable por cliente (smoke del walk-cycle)
 function mkCliente(esVip){
-  return { vip:!!esVip, estado:'asoma', t:0, x:-26, y:SIDEWALK_Y,
+  return { uid: cliUid++, vip:!!esVip, estado:'asoma', t:0, x:-26, y:SIDEWALK_Y,
     dist:0, pasoN:0, moviendo:false, dir:1,
     ln:mkSpring(0), frenoT:0, frenoDir:1, prevMov:false,
     col: esVip ? '#ffd700' : PAL_CLI[(rng()*PAL_CLI.length)|0],
@@ -1530,16 +1531,28 @@ function drawComal(){
       (COMAL.rx*HF+14)*2, (COMAL.ry*HF+34)*2, ()=> tapComal());
 }
 
-/* ---------- clientes: siluetas con walk-cycle de curvas ---------- */
-/* pose del sprite según estado: feliz→celebra · espera aburrida→aburrido */
-function spriteCliente(c){
+/* ---------- clientes: walk-cycle REAL por fase de zancada ----------
+   RONDA FULL lote 2 (aprobada 👤 "FULL ×todos + integrar", doble gate
+   9.2-9.6): 8 frames por ciclo (cli_N_w1..w8; cli_3 flip HORNEADO en el
+   pipeline — los 4 sets miran a la DERECHA; el flip runtime de c.dir<0
+   sigue cubriendo los tramos hacia la izquierda). En TRÁNSITO el frame lo
+   dicta la MISMA fase de zancada que ya conducía bob/squash: frame =
+   floor(fase·N)%N. Parado = w1 (contacto estable, sin parpadeo). Poses
+   celebra/aburrido se CONSERVAN tal cual (bug de identidad cruzada
+   POSPUESTO 👤 — no tocar aquí). */
+function frameZancada(c){
+  const n = J.walk_frames_por_ciclo;
+  return ((((c.dist / J.walk_paso_px) % 1) * n) | 0) % n + 1;   // 1..n
+}
+function spriteKeyCliente(c){
   const base = 'cli_' + c.spr;
-  if (c.estado === 'feliz') return IMG[base + '_celebra'];
+  if (c.estado === 'feliz') return base + '_celebra';
+  if (c.moviendo) return base + '_w' + frameZancada(c);   // transita → ciclo
   if (c.vip && c.estado === 'espera' && c.paciencia < 0.6)
-    return IMG[base + '_aburrido'];            // el VIP se impacienta VISIBLEMENTE
+    return base + '_aburrido';            // el VIP se impacienta VISIBLEMENTE
   if (!c.vip && c.estado === 'cola' && fila.indexOf(c) > 0)
-    return IMG[base + '_aburrido'];            // la cola se aburre (vida de fondo)
-  return IMG[base];
+    return base + '_aburrido';            // la cola se aburre (vida de fondo)
+  return base + '_w1';                    // parado: contacto estable (f1)
 }
 function drawCliente(c){
   // walk-cycle con PESO acoplado a la ZANCADA (cura r2, defecto 6/6): la fase
@@ -1548,6 +1561,9 @@ function drawCliente(c){
   // pisada vía c.sq (spring), no un seno libre sobre el tiempo global
   const ph = (c.dist / J.walk_paso_px) % 1;              // fase de la zancada
   const stepPh = c.moviendo ? Math.sin(ph*Math.PI) : 0;  // 0=contacto, 1=aire
+  // walk_bob = 0 en config desde la RONDA FULL (el ciclo de 8 frames YA trae
+  // el bob dibujado); el código se conserva — knob re-activable si se vuelve
+  // a siluetas procedurales. El micro-bob de reposo (respiración) sigue vivo.
   const bob = c.moviendo ? stepPh*J.walk_bob : Math.sin(G.simTime*2.2+c.x)*1.2;
   const y = c.y - bob - c.hop;
   const wsq = c.moviendo ? 1 + (stepPh-0.5)*2*J.walk_squash : 1;
@@ -1579,9 +1595,11 @@ function drawCliente(c){
   ctx.rotate(c.ln.x);   // cura r3: lean de freno/arranque (silueta legible a 4fps)
   ctx.scale(1/Math.sqrt(sq), sq);
   ctx.scale(alto, alto);
-  // sprite del pool (LOTE 1: 4 canons + poses celebra/aburrido) dentro del
-  // MISMO tren de transforms del walk-cycle E-anim (bob/lean/squash intactos)
-  const im = spriteCliente(c);
+  // sprite del pool (RONDA FULL: ciclo w1..w8 + poses celebra/aburrido)
+  // dentro del MISMO tren de transforms E-anim — el squash de llegada y la
+  // anticipación de freno (c.ln/c.sq, premiados por el juez) se aplican como
+  // TRANSFORM sobre el frame del ciclo
+  const im = IMG[spriteKeyCliente(c)];
   const h = V.cliente_alto_px, w = h * im.width / im.height;
   if (c.dir < 0){ ctx.scale(-1, 1); }          // mira hacia la marcha
   ctx.drawImage(im, -w/2, -h+2, w, h);
@@ -2266,6 +2284,11 @@ G.dbg = {
   // LOTE 3 (smoke fail-closed de la materialización + aro del tap)
   propScale: (i)=> construcciones[i] ? construcciones[i].propSc.x : 0,
   salientes: ()=> clientes.filter(c=>c.estado==='sale').length,
+  // WALK-CYCLE RONDA FULL (smoke fail-closed): observa el sprite key REAL
+  // que el render usa por cliente — no fabrica estado
+  walkInfo: ()=> clientes.map(c=>({ uid:c.uid, key:spriteKeyCliente(c),
+    mov:c.moviendo, estado:c.estado })),
+  walkAssets: ()=> Object.keys(IMG).filter(k=>/^cli_\d_w\d$/.test(k)).length,
 };
 
 return { G, resumen };

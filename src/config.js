@@ -53,6 +53,7 @@ const REQUERIDAS = {
     'shake_intensidad', 'shake_tap', 'hitstop_ticks_tap', 'hitstop_ticks_grande',
     'walk_bob', 'walk_paso_px', 'walk_squash', 'walk_squash_contacto',
     'walk_lean', 'walk_freno_lean', 'walk_freno_squash', 'walk_freno_ticks',
+    'walk_frames_por_ciclo',
     'flash_comal_s', 'flash_tap_s', 'shake_venta',
     'impacto_radial_lineas', 'impacto_radial_dur_s', 'comal_pop_escala',
     'ad_out_s', 'ad_in_escala0', 'ad_in_fade_s', 'ad_out_escala',

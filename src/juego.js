@@ -25,6 +25,46 @@ const V = CFG.visual;    // capa visual LOTE 1 (aprobado 👤)
 const W = 540, H = 960, TICK = 1 / 60;
 const cv = canvas, ctx = cv.getContext('2d');
 
+/* ---------- nitidez retina + caches de render (fix perf+visual 2026-07-14) --
+   ANTES el backbuffer era fijo 540×960 y el compositor lo CSS-escalaba al
+   viewport: en pantallas retina/desktop se veía BORROSO (feedback playtest 👤).
+   AHORA backbuffer = tamaño CSS × min(devicePixelRatio, V.dpr_max — knob de
+   config). Todo el motor sigue en coords lógicas 540×960: render() fija
+   setTransform(S,S) una vez y el resto no cambia. El fondo se pre-escala a
+   un offscreen canvas del tamaño del backbuffer (blit 1:1, sin reescalado
+   por frame) y los gradientes fijos se cachean (antes se creaban POR FRAME
+   = basura para el GC + coste de setup). */
+let S = 1;                        // escala lógica→backbuffer (dpr efectivo)
+let resDirty = true;              // recalcular backbuffer al próximo frame
+const fondoCache = {};            // fondo pre-escalado al backbuffer, por nivel
+function ajustarResolucion(){
+  const r = cv.getBoundingClientRect();
+  if (!r.width) return;            // sin layout aún: reintenta al próximo frame
+  resDirty = false;
+  const dpr = Math.min(window.devicePixelRatio || 1, V.dpr_max);
+  const bw = Math.max(1, Math.round(r.width * dpr));
+  // floor: bh <= S*H SIEMPRE (un redondeo hacia arriba dejaría una línea de
+  // 1 device-px sin cubrir bajo los fillRect(0,0,W,H) de los overlays)
+  const bh = Math.max(1, Math.floor(bw * H / W));
+  if (cv.width !== bw || cv.height !== bh || !fondoCache[1]){
+    cv.width = bw; cv.height = bh;
+    S = bw / W;
+    // pre-hornea los 3 fondos YA (no en su primer uso: el swap de fondo de la
+    // renovación pagaba el reescalado+decode en medio del telón = hitch)
+    for (let n = 1; n <= 3; n++){
+      const c = fondoCache[n] || (fondoCache[n] = document.createElement('canvas'));
+      c.width = bw; c.height = bh;
+      c.getContext('2d').drawImage(IMG['fondo_' + n], 0, 0, bw, bh);
+    }
+  }
+}
+window.addEventListener('resize', ()=>{ resDirty = true; });
+if (window.visualViewport)
+  window.visualViewport.addEventListener('resize', ()=>{ resDirty = true; });
+/* gradientes cacheados (coords lógicas: el transform S los escala solo) */
+let gradHud = null, gradBarra = null, gradComal = null,
+    gradVipOro = null, gradVipRojo = null, gradAura = null;
+
 /* ---------- flags de URL ---------- */
 const seed = (() => {
   const m = location.search.match(/[?&]seed=(\d+)/);
@@ -987,16 +1027,20 @@ function autopilot(dt){
    kit). La GEOMETRÍA de gameplay del P4 no se movió: los fondos se generaron
    sobre mockups del prototipo y el ancla (comal 272,460 · fila y=592) coincide.
    ========================================================================= */
-function fondoActual(){ return IMG['fondo_' + Math.min(G.nivel, 3)]; }
+function fondoCacheado(){
+  return fondoCache[Math.min(G.nivel, 3)];   // horneados en ajustarResolucion()
+}
 
 let hits = [];   // hitboxes del frame (para modo manual)
 function hit(x,y,w,h,fn){ hits.push({x,y,w,h,fn}); }
 
 function render(){
   hits = [];
+  if (resDirty) ajustarResolucion();
+  if (!fondoCache[1]) return;             // sin layout todavía (r.width=0)
   ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,W,H);
-  ctx.drawImage(fondoActual(), 0, 0, W, H);
+  ctx.drawImage(fondoCacheado(), 0, 0);   // blit 1:1 device-px; opaco = cubre todo
+  ctx.setTransform(S,0,0,S,0,0);          // el resto del frame en coords lógicas
 
   // cámara: shake + punch-in
   ctx.save();
@@ -1026,21 +1070,28 @@ function render(){
 
   // vignette dorada del VIP
   if (G.vipActive){
-    const vg = ctx.createRadialGradient(W/2,450,170, W/2,450,560);
-    vg.addColorStop(0,'rgba(255,215,0,0)');
-    vg.addColorStop(1,`rgba(255,180,0,${J.vip_vignette_alpha})`);
-    ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+    if (!gradVipOro){
+      gradVipOro = ctx.createRadialGradient(W/2,450,170, W/2,450,560);
+      gradVipOro.addColorStop(0,'rgba(255,215,0,0)');
+      gradVipOro.addColorStop(1,`rgba(255,180,0,${J.vip_vignette_alpha})`);
+    }
+    ctx.fillStyle = gradVipOro; ctx.fillRect(0,0,W,H);
     // vignette ROJA de pánico en los últimos ~3s (cura r5, defecto 3/3 r4:
     // "sin latido/pánico proporcional a la criticidad"). El pulso modula
     // alpha entre 55% y 100% de vip_vignette_alpha — NUNCA se apaga, así
     // toda muestra a fps=4 captura los bordes rojos; solo la intensidad late
     // (1.5→4 Hz vía vipLatidoFase).
     if (vipRestanteS() <= J.vip_latido_ventana_s){
-      const ra = J.vip_vignette_alpha * (0.55 + 0.45*vipPulso());
-      const rv = ctx.createRadialGradient(W/2,450,150, W/2,450,560);
-      rv.addColorStop(0,'rgba(239,68,68,0)');
-      rv.addColorStop(1,`rgba(220,38,38,${ra})`);
-      ctx.fillStyle = rv; ctx.fillRect(0,0,W,H);
+      // cacheado a alpha fija; el latido modula globalAlpha (alphas multiplican)
+      if (!gradVipRojo){
+        gradVipRojo = ctx.createRadialGradient(W/2,450,150, W/2,450,560);
+        gradVipRojo.addColorStop(0,'rgba(239,68,68,0)');
+        gradVipRojo.addColorStop(1,`rgba(220,38,38,${J.vip_vignette_alpha})`);
+      }
+      ctx.fillStyle = gradVipRojo;
+      ctx.globalAlpha = 0.55 + 0.45*vipPulso();
+      ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -1209,13 +1260,19 @@ function drawComal(){
   ctx.scale(comal.sx.x*comal.pop.x, comal.sy.x*comal.pop.x);
   // glow del borde (pulso)
   if (on){
+    // gradiente cacheado a alpha fija; el pulso vive en globalAlpha (mismo
+    // resultado visual: los alphas se multiplican)
     const puls = 0.34 + 0.14*Math.sin(G.simTime*3.2) + (comal.humoT>0? 0.3:0);
-    const gg = ctx.createRadialGradient(0,0,COMAL.rx*0.4, 0,0,COMAL.rx*1.5);
-    gg.addColorStop(0,'rgba(255,107,53,0)');
-    gg.addColorStop(0.75,`rgba(255,107,53,${puls*0.55})`);
-    gg.addColorStop(1,'rgba(255,107,53,0)');
-    ctx.fillStyle = gg;
+    if (!gradComal){
+      gradComal = ctx.createRadialGradient(0,0,COMAL.rx*0.4, 0,0,COMAL.rx*1.5);
+      gradComal.addColorStop(0,'rgba(255,107,53,0)');
+      gradComal.addColorStop(0.75,'rgba(255,107,53,0.55)');
+      gradComal.addColorStop(1,'rgba(255,107,53,0)');
+    }
+    ctx.fillStyle = gradComal;
+    ctx.globalAlpha = Math.min(puls, 1);
     ctx.beginPath(); ctx.ellipse(0,0,COMAL.rx*1.5,COMAL.ry*1.9,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
   }
   // disco
   ctx.fillStyle = '#15151f';
@@ -1337,9 +1394,16 @@ function drawCliente(c){
   ctx.save();
   // aura VIP
   if (c.vip){
-    const ag = ctx.createRadialGradient(c.x, y-40, 8, c.x, y-40, 66);
-    ag.addColorStop(0,'rgba(255,215,0,0.35)'); ag.addColorStop(1,'rgba(255,215,0,0)');
-    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(c.x, y-40, 66, 0, Math.PI*2); ctx.fill();
+    // gradiente cacheado en el ORIGEN + translate (antes: uno nuevo por frame)
+    if (!gradAura){
+      gradAura = ctx.createRadialGradient(0,0,8, 0,0,66);
+      gradAura.addColorStop(0,'rgba(255,215,0,0.35)');
+      gradAura.addColorStop(1,'rgba(255,215,0,0)');
+    }
+    ctx.save(); ctx.translate(c.x, y-40);
+    ctx.fillStyle = gradAura;
+    ctx.beginPath(); ctx.arc(0, 0, 66, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
   }
   // sombra pegada al suelo
   ctx.globalAlpha = 0.35;
@@ -1457,9 +1521,10 @@ const HUD_ESTILO = (() => {
 })();
 function drawHUD(){
   ctx.save();
-  const g = ctx.createLinearGradient(0,0,0,132);
-  g.addColorStop(0,'rgba(10,10,20,0.98)'); g.addColorStop(1,'rgba(10,10,20,0)');
-  ctx.fillStyle = g; ctx.fillRect(0,0,W,132);
+  if (!gradHud){ gradHud = ctx.createLinearGradient(0,0,0,132);
+    gradHud.addColorStop(0,'rgba(10,10,20,0.98)');
+    gradHud.addColorStop(1,'rgba(10,10,20,0)'); }
+  ctx.fillStyle = gradHud; ctx.fillRect(0,0,W,132);
   // la BARRA del HUD (s7 rectángulo / s77 cápsula — sub-decisión 👤 del lote)
   const hb = IMG['hud_' + HUD_ESTILO];
   ctx.drawImage(hb, 2, 4, W-4, 72);
@@ -1520,9 +1585,9 @@ function drawHUD(){
   const lista = puedeRenovar();
   ctx.fillStyle='rgba(255,255,255,0.12)'; rr(bx,by,bw,bh,12); ctx.fill();
   ctx.save(); rr(bx,by,bw,bh,12); ctx.clip();
-  const bg2 = ctx.createLinearGradient(bx,0,bx+bw,0);
-  bg2.addColorStop(0,'#b8860b'); bg2.addColorStop(1,'#ffd700');
-  ctx.fillStyle = bg2; ctx.fillRect(bx,by,bw*k,bh);
+  if (!gradBarra){ gradBarra = ctx.createLinearGradient(bx,0,bx+bw,0);
+    gradBarra.addColorStop(0,'#b8860b'); gradBarra.addColorStop(1,'#ffd700'); }
+  ctx.fillStyle = gradBarra; ctx.fillRect(bx,by,bw*k,bh);
   ctx.restore();
   const puls = lista ? 1+0.05*Math.sin(G.simTime*9) : 1;
   ctx.save(); ctx.translate(bx+bw/2, by+bh/2); ctx.scale(puls,puls);
@@ -1970,6 +2035,31 @@ function resumen(){
     nivel:G.nivel, ads_vistos:G.adsVistos, sim_s:+G.simTime.toFixed(1) };
 }
 
+/* ---------- pre-calentamiento del boot (fix perf 2026-07-14) --------------
+   El tracing mostró UN long task de ~60ms a t≈25-30s en TODA sesión (antes y
+   después de los otros fixes), correlacionado con el PRIMER render de la
+   starter/tienda: población del glyph-atlas (decenas de tamaños de fuente
+   nuevos de golpe) + primer upload de texturas. Se paga AQUÍ (boot, antes del
+   primer frame visible — el fondo opaco del primer render lo tapa) y no en
+   pleno gameplay. */
+function precalentar(){
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 0.01;
+  for (const k in IMG) ctx.drawImage(IMG[k], 0, 0, 8, 8);   // upload de texturas
+  const MUESTRA = '0123456789$+-×.,:/()%¡!ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+    'abcdefghijklmnñopqrstuvwxyzáéíóú💎📺⭐🛒🎟️🌮✕';
+  const PESOS = { 600:[9,10], 700:[10,11,12,13,15], 800:[11,12,13,14,15,18],
+    900:[11,12,13,14,15,16,17,18,20,22,24,26,28,30,34,44,46,50,54] };
+  ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.lineJoin = 'round';
+  ctx.fillStyle = '#fff';
+  for (const [peso, tams] of Object.entries(PESOS))
+    for (const t of tams){
+      ctx.font = `${peso} ${t}px Arial`;
+      ctx.fillText(MUESTRA, 2, 12);
+      ctx.strokeText(MUESTRA, 2, 12);
+    }
+  ctx.restore();
+}
+
 /* ============================================================================
    LOOP — acumulador de timestep fijo; fps medido en el render real
    ========================================================================= */
@@ -1986,6 +2076,7 @@ function frame(now){
   render();
   requestAnimationFrame(frame);
 }
+precalentar();
 requestAnimationFrame(frame);
 
 /* ---------- API de depuración/smoke: llama a las funciones REALES del motor

@@ -41,7 +41,7 @@ const REQUERIDAS = {
     'prestige_recompensa',
   ],
   visual: [
-    'hud_estilo', 'carrito', 'cliente_alto_px', 'starter_banda',
+    'hud_estilo', 'carrito', 'cliente_alto_px', 'starter_banda', 'dpr_max',
   ],
   ritmo: [
     'cooldown_overlay_s', 'cooldown_overlay_demo_s', 'renov_dur_s',

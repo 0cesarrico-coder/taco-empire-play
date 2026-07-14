@@ -1,0 +1,222 @@
+{
+ "_fuente": "LOTE 1 aprobado 👤 (TAQUERIA-C-LOTES.md) — c-lote1 + b3v2 + b3; procesado por tools/preparar_assets.py",
+ "imagenes": {
+  "fondo_1": {
+   "archivo": "fondo_1.webp",
+   "w": 540,
+   "h": 960,
+   "kb": 68.4,
+   "origen": "c-lote1/fondo-1-puesto.png"
+  },
+  "fondo_2": {
+   "archivo": "fondo_2.webp",
+   "w": 540,
+   "h": 960,
+   "kb": 72.5,
+   "origen": "c-lote1/fondo-2-local.png"
+  },
+  "fondo_3": {
+   "archivo": "fondo_3.webp",
+   "w": 540,
+   "h": 960,
+   "kb": 87.7,
+   "origen": "c-lote1/fondo-3-taqueria.png"
+  },
+  "carrito": {
+   "archivo": "carrito.webp",
+   "w": 340,
+   "h": 459,
+   "kb": 28.5,
+   "origen": "c-lote1/carrito-limpio-s7.png"
+  },
+  "hud_s7": {
+   "archivo": "hud_s7.webp",
+   "w": 540,
+   "h": 116,
+   "kb": 7.5,
+   "origen": "c-lote1/hud-barra-superior-s7.png"
+  },
+  "hud_s77": {
+   "archivo": "hud_s77.webp",
+   "w": 540,
+   "h": 145,
+   "kb": 10.7,
+   "origen": "c-lote1/hud-barra-superior-s77.png"
+  },
+  "placa_turquesa": {
+   "archivo": "placa_turquesa.webp",
+   "w": 256,
+   "h": 178,
+   "kb": 6.0,
+   "origen": "b3v2/placa-turquesa-s7.png"
+  },
+  "placa_mostaza": {
+   "archivo": "placa_mostaza.webp",
+   "w": 256,
+   "h": 126,
+   "kb": 4.3,
+   "origen": "b3v2/placa-mostaza-s7.png"
+  },
+  "placa_roja": {
+   "archivo": "placa_roja.webp",
+   "w": 256,
+   "h": 138,
+   "kb": 3.8,
+   "origen": "b3v2/placa-roja-s7.png"
+  },
+  "marco_panel": {
+   "archivo": "marco_panel.webp",
+   "w": 480,
+   "h": 298,
+   "kb": 6.6,
+   "origen": "b3v2/marco-panel-s7.png"
+  },
+  "panel_oferta": {
+   "archivo": "panel_oferta.webp",
+   "w": 470,
+   "h": 656,
+   "kb": 18.1,
+   "origen": "c-lote1/panel-oferta-grande-s7.png"
+  },
+  "boton_circular": {
+   "archivo": "boton_circular.webp",
+   "w": 96,
+   "h": 97,
+   "kb": 3.0,
+   "origen": "c-lote1/boton-circular-chico-s7.png"
+  },
+  "chip": {
+   "archivo": "chip.webp",
+   "w": 160,
+   "h": 52,
+   "kb": 1.8,
+   "origen": "c-lote1/chip-pequeno-s7.png"
+  },
+  "icono_gema": {
+   "archivo": "icono_gema.webp",
+   "w": 72,
+   "h": 75,
+   "kb": 2.6,
+   "origen": "b3/icono-gema-s7.png"
+  },
+  "icono_taco": {
+   "archivo": "icono_taco.webp",
+   "w": 72,
+   "h": 66,
+   "kb": 2.7,
+   "origen": "b3/icono-taco-s7.png"
+  },
+  "icono_comal": {
+   "archivo": "icono_comal.webp",
+   "w": 72,
+   "h": 65,
+   "kb": 3.2,
+   "origen": "c-lote1/icono-comal-v2.png"
+  },
+  "icono_mesa": {
+   "archivo": "icono_mesa.webp",
+   "w": 72,
+   "h": 60,
+   "kb": 3.7,
+   "origen": "c-lote1/icono-mesa-v2.png"
+  },
+  "icono_taco_billetes": {
+   "archivo": "icono_taco_billetes.webp",
+   "w": 72,
+   "h": 59,
+   "kb": 2.9,
+   "origen": "c-lote1/icono-taco-billetes-v2.png"
+  },
+  "icono_salsa": {
+   "archivo": "icono_salsa.webp",
+   "w": 72,
+   "h": 189,
+   "kb": 5.4,
+   "origen": "b3v2/icono-salsa-s7.png"
+  },
+  "cli_0": {
+   "archivo": "cli_0.webp",
+   "w": 74,
+   "h": 200,
+   "kb": 6.1,
+   "origen": "b3/cliente-a-s7.png"
+  },
+  "cli_0_celebra": {
+   "archivo": "cli_0_celebra.webp",
+   "w": 124,
+   "h": 200,
+   "kb": 6.4,
+   "origen": "b3v2/cliente-a-celebra-s7.png"
+  },
+  "cli_0_aburrido": {
+   "archivo": "cli_0_aburrido.webp",
+   "w": 125,
+   "h": 200,
+   "kb": 5.9,
+   "origen": "b3v2/cliente-a-aburrido-s7.png"
+  },
+  "cli_1": {
+   "archivo": "cli_1.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 6.8,
+   "origen": "b3/cliente-a-s77.png"
+  },
+  "cli_1_celebra": {
+   "archivo": "cli_1_celebra.webp",
+   "w": 121,
+   "h": 200,
+   "kb": 6.5,
+   "origen": "b3v2/cliente-a-celebra-s77.png"
+  },
+  "cli_1_aburrido": {
+   "archivo": "cli_1_aburrido.webp",
+   "w": 124,
+   "h": 200,
+   "kb": 6.1,
+   "origen": "b3v2/cliente-a-aburrido-s77.png"
+  },
+  "cli_2": {
+   "archivo": "cli_2.webp",
+   "w": 98,
+   "h": 200,
+   "kb": 8.7,
+   "origen": "b3/cliente-b-s7.png"
+  },
+  "cli_2_celebra": {
+   "archivo": "cli_2_celebra.webp",
+   "w": 123,
+   "h": 200,
+   "kb": 8.7,
+   "origen": "b3v2/cliente-b-celebra-s7.png"
+  },
+  "cli_2_aburrido": {
+   "archivo": "cli_2_aburrido.webp",
+   "w": 124,
+   "h": 200,
+   "kb": 8.3,
+   "origen": "b3v2/cliente-b-aburrido-s7.png"
+  },
+  "cli_3": {
+   "archivo": "cli_3.webp",
+   "w": 101,
+   "h": 200,
+   "kb": 8.4,
+   "origen": "b3/cliente-b-s77.png"
+  },
+  "cli_3_celebra": {
+   "archivo": "cli_3_celebra.webp",
+   "w": 123,
+   "h": 200,
+   "kb": 8.1,
+   "origen": "b3v2/cliente-b-celebra-s77.png"
+  },
+  "cli_3_aburrido": {
+   "archivo": "cli_3_aburrido.webp",
+   "w": 88,
+   "h": 200,
+   "kb": 8.1,
+   "origen": "b3v2/cliente-b-aburrido-s77.png"
+  }
+ }
+}

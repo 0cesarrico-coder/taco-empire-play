@@ -31,14 +31,18 @@ MAX_BYTES = 2 * 1024 * 1024                        # requisito duro plan v2.1 #8
 
 # assets que el playable USA (recorte deliberado del set completo del motor;
 # fuera: fondo_3, hud_s77, panel_oferta, marco_panel, chip, icono_comal,
-# icono_mesa, icono_gema, boton_circular, cli_*_aburrido — ver README)
+# icono_mesa, icono_gema, boton_circular, cli_*_aburrido — ver README).
+# RONDA FULL: entran los 32 frames de walk-cycle (cli_N_w1..w8, ~390 KB b64,
+# los 4 clientes CABEN de sobra en el tope de 2 MB); salen los canons base
+# cli_N (parado ahora usa w1 = contacto estable → base quedaba muerto) y los
+# iconos del lote 3 siguen FUERA (el playable no llega a tier 2-3: bytes
+# muertos aunque quepan).
 ASSETS_USADOS = [
     "fondo_1", "fondo_2", "carrito", "hud_s7",
     "placa_turquesa", "placa_mostaza", "placa_roja",
     "icono_taco", "icono_salsa", "icono_taco_billetes",
-    "cli_0", "cli_0_celebra", "cli_1", "cli_1_celebra",
-    "cli_2", "cli_2_celebra", "cli_3", "cli_3_celebra",
-]
+    "cli_0_celebra", "cli_1_celebra", "cli_2_celebra", "cli_3_celebra",
+] + [f"cli_{i}_w{k}" for i in range(4) for k in range(1, 9)]
 
 SECCIONES_CFG = ["economia", "juice", "ritmo", "visual"]
 

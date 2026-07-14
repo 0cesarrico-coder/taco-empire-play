@@ -267,7 +267,9 @@ function comprar(c){
   G.compras++; if (G.simTime < 60) G.comprasMin1++;
   G.lastCompraT = G.simTime;
   TELE.evento('compra_soft', { item:c.n, costo:c.c, moneda:'billetes' });
-  c.sc.x = 1.35; c.sc.v = -4;
+  // pulido H menor (G2-v2 01:13.470-14.720 "botones sin overshoot al
+  // presionarse"): más amplitud y energía → el spring rebota 1.45→0.9→1.05→1
+  c.sc.x = 1.45; c.sc.v = -6;
   // ★ MATERIALIZACIÓN del prop (LOTE 3 👤): spawn aplastado→overshoot por el
   //   spring base + nube de polvo en la base + micro-shake. El feedback de
   //   compra (burst dorado + pop del nombre) se muda AL prop: la compra se ve
@@ -308,7 +310,7 @@ function comprarMejora(m){
   G.lastCompraT = G.simTime;
   TELE.evento('compra_soft', { item:m.n+'_nv'+m.nivel, costo:costoPagado,
     moneda:'billetes' });
-  m.sc.x = 1.3; m.sc.v = -4;
+  m.sc.x = 1.38; m.sc.v = -6;   // overshoot del botón (pulido H, par de comprar)
   burst(COMAL.x, COMAL.y-10, 10, '#4caf50', 150);
   pop(m.n+' '+STR('nv')+m.nivel, W/2, 700, 20, '#4caf50');
 }
@@ -327,10 +329,15 @@ const ads = {
   influencerNextT:E.influencer_primero_t_s,
   salsaDesde:E.salsa_desde_t_s, comalDesde:E.comal_turbo_desde_t_s,
 };
+let megatipHasta = -1;   // pulido H: calma post-MEGA-TIP (G3-v2 01:09.470)
 function verAd(tipo){
   if (ads.overlay || G.state!=='juego') return;
   // cadenciador: gameplay libre garantizado entre interrupciones fullscreen
   if (G.simTime - overlayLibreDesde < cooldownOverlay) return;
+  // pulido H menor (G3-v2 01:09.470 "corte brusco al simulated-ad tras el
+  // MEGA-TIP"): la celebración del rescate respira megatip_calma_s antes de
+  // cualquier overlay — el ad llega después con su fade-in de siempre
+  if (G.simTime < megatipHasta) return;
   // pop-in orgánico — cura r3 (defecto 2/3: "entra con corte directo"): el
   // spring r2 SÍ corría (verificado: pico 1.35) pero con escala0=0.62 el
   // recorrido cabía ENTRE muestras a fps=4; escala0 baja = despliegue que el
@@ -422,7 +429,9 @@ const tienda = { abierta:false, sl:mkSpring(0) };
 function abrirTienda(){
   if (tienda.abierta || G.state!=='juego') return;
   tienda.abierta = true; G.tiendaShown = true;
-  tienda.sl.x = 0.6; tienda.sl.t = 1; tienda.sl.v = 4;
+  // pulido H menor (G1-v1 00:33.500 "Shop sin muelleo"): más recorrido y más
+  // energía → overshoot +9% en el pico (sim 60Hz con amort 5.5 del update)
+  tienda.sl.x = 0.35; tienda.sl.t = 1; tienda.sl.v = 5;
 }
 function cerrarTienda(){ tienda.abierta = false; overlayLibreDesde = G.simTime; }
 
@@ -463,7 +472,7 @@ const midDesbloqueado = ()=> G.nivel >= M.mid_desde_local;
 function abrirMid(){
   if (mid.abierta || !midDesbloqueado() || G.state!=='juego') return;
   mid.abierta = true;
-  mid.sl.x = 0.6; mid.sl.t = 1; mid.sl.v = 4;
+  mid.sl.x = 0.35; mid.sl.t = 1; mid.sl.v = 5;   // muelleo (par del Shop, pulido H)
 }
 function cerrarMid(){ mid.abierta = false; overlayLibreDesde = G.simTime; }
 /* packs de saltos: precio en gemas = skip_ad_skus (consume tiers 10/30 — H2) */
@@ -539,9 +548,21 @@ const vipRestanteS = ()=> (vip && vip.estado==='espera' && G.vipActive)
 const rafaga = { n:0, lastT:-99 };
 
 let cliUid = 0;   // identidad estable por cliente (smoke del walk-cycle)
+/* ★ pulido H — dirección de SPAWN del cliente normal (residual #1 del gate
+   final, 4/6: G1-v1/G2-v1/G3-v1 00:12.000 · G3-v2 00:52.970 "entran lineal y
+   abrupto sin asomarse, frenar o acelerar la marcha"). El peek sinusoidal
+   anterior movía la x con el sprite PARADO en w1 → el juez lo leía como
+   "deslizándose por el lateral" (G3-v1). Ahora: el normal APARECE con medio
+   cuerpo en el borde (x=2, quieto — cambio de silueta, no física fina), beat
+   de spawn_beat_s con '!' y squash de plantón, y ENTRA con 2 pasos rápidos
+   (spawn_paso_mult + spawn_lean adelante) que frenan con el lean-atrás
+   EXISTENTE (r3) al llegar al slot. El VIP conserva su entrada slow-mo con
+   peek largo (coreografía elogiada 3/3 en r4 — no se toca). */
 function mkCliente(esVip){
-  return { uid: cliUid++, vip:!!esVip, estado:'asoma', t:0, x:-26, y:SIDEWALK_Y,
+  return { uid: cliUid++, vip:!!esVip, estado:'asoma', t:0,
+    x: esVip ? -26 : 2, y:SIDEWALK_Y,
     dist:0, pasoN:0, moviendo:false, dir:1,
+    spawnBoost: esVip ? 0 : J.walk_paso_px*2,   // px de pasos RÁPIDOS de entrada
     ln:mkSpring(0), frenoT:0, frenoDir:1, prevMov:false,
     col: esVip ? '#ffd700' : PAL_CLI[(rng()*PAL_CLI.length)|0],
     spr: (rng()*4)|0,                 // pool de 4 canons (determinista por seed)
@@ -551,6 +572,9 @@ function mkCliente(esVip){
 }
 function spawnCliente(esVip){
   const c = mkCliente(esVip);
+  // pulido H: el asomo del normal ATERRIZA con micro-squash de plantón (el
+  // spring c.sq lo hace sonar durante el beat — el pop-in tiene peso)
+  if (!esVip) c.sq.x = 1 - J.walk_freno_squash;
   clientes.push(c);
   if (esVip){ fila.unshift(c); } else fila.push(c);
   return c;
@@ -559,7 +583,8 @@ function spawnCliente(esVip){
 /* ---------- el comal (tap → squash + chispas; humea antes de estar listo) -- */
 const comal = { taps:0, humoT:0, flashT:0, tapFlashT:0, sx:mkSpring(1), sy:mkSpring(1),
   pop:mkSpring(1), radialT:0, radialA:0,     // cura r3: pop de escala + líneas radiales
-  radialK:1 };                               // cura r5: escala de radiales (combo=grandes)
+  radialK:1,                                 // cura r5: escala de radiales (combo=grandes)
+  tacoHopT:0 };                              // pulido H: salto de tortillas al tap
 function tapComal(){
   if (tienda.abierta || mid.abierta || wb.visible || ads.overlay) return; // overlays bloquean
   if (!construcciones[0].comprada && G.nivel===1) return; // sin comal no hay tacos
@@ -572,9 +597,17 @@ function tapComal(){
     try { localStorage.setItem('te_taps_manual', String(G.tapsManual)); } catch {}
   }
   comal.taps += comalTurbo() ? E.comal_turbo_taps : 1;
-  // squash direccional + hit-stop + micro-shake en CADA tap (el clicker SE SIENTE)
+  // squash direccional + hit-stop + micro-shake en CADA tap (el clicker SE SIENTE).
+  // Pulido H (defecto CRÓNICO 5ª ronda, 3/6 gate_final: G1-v1 00:14.500 ·
+  // G2-v2 00:50.220 · G3-v1 00:14.500 "el comal no se deforma elásticamente"):
+  // squash 0.82 con spring RÁPIDO dedicado (comal_spring_k/amort) y rebote
+  // calibrado por sim 60Hz — pico Y 1.097 y 1.078≈1.08 en la PRIMERA muestra
+  // post-hit-stop a fps=4. El ritmo NO se toca (hitstop_ticks_tap intacto).
   comal.sy.x = J.squash_tap; comal.sx.x = 1/J.squash_tap;
-  comal.sy.v = 5; comal.sx.v = -5;
+  comal.sy.v = J.comal_rebote_v; comal.sx.v = -J.comal_rebote_v;
+  // las tortillas/taco SALTAN al golpe (silueta): despegan YA en el frame del
+  // tap y el hit-stop las congela EN EL AIRE (el timer decae en update())
+  comal.tacoHopT = J.comal_taco_salto_s;
   G.hitStop = J.hitstop_ticks_tap;
   // flash blanco del TAP (cura r2, defecto 4/6): el freeze de ~117ms es
   // invisible en video 8fps; el flash — que persiste CONGELADO durante el
@@ -673,6 +706,7 @@ function venta(c){
     dropConfetti(70);
     burst(c.x, c.y-70, 30, '#ffd700', 260);
     G.timeScale = J.slowmo_save; slowmoHasta = G.simTime + 0.25;
+    megatipHasta = G.simTime + J.megatip_calma_s;   // pulido H: el ad espera
     G.vipDone = true; G.vipActive = false; G.vipNearMiss = false;
     vip = null;
   }
@@ -737,13 +771,17 @@ function update(dt){
   cam.shake = Math.max(0, cam.shake - dt*30);
   stepSpring(hudMoney, J.spring_k, J.spring_amort, dt);
   stepSpring(hudGem, J.spring_k, J.spring_amort, dt);
-  stepSpring(comal.sx, J.spring_k, J.spring_amort, dt);
-  stepSpring(comal.sy, J.spring_k, J.spring_amort, dt);
+  // pulido H: spring RÁPIDO dedicado del squash del comal (defecto crónico 3/6)
+  stepSpring(comal.sx, J.comal_spring_k, J.comal_spring_amort, dt);
+  stepSpring(comal.sy, J.comal_spring_k, J.comal_spring_amort, dt);
   stepSpring(comal.pop, J.spring_k, J.spring_amort, dt);  // cura r3: overshoot del comal
   stepSpring(starter.sl, 60, 8, dt);
   stepSpring(wb.sl, 60, 8, dt);
-  stepSpring(tienda.sl, 90, 9, dt);
-  stepSpring(mid.sl, 90, 9, dt);
+  // pulido H menor (G1-v1 00:33.500 "apertura del Shop lineal sin muelleo"):
+  // amort 9→5.5 — la lección r2 (amort 9 mata el overshoot a <5%); con 5.5 el
+  // panel abre con rebote visible (+9% en el pico, sim 60Hz)
+  stepSpring(tienda.sl, 90, 5.5, dt);
+  stepSpring(mid.sl, 90, 5.5, dt);
   // descanso post-renovación: sin pulsos de botones (amortiguación, juez ritmo)
   const postRenovCalma = G.renovaciones>0 &&
     G.simTime - G.renovT < R.post_renov_calma_s + R.renov_dur_s;
@@ -900,6 +938,7 @@ function update(dt){
   if (comal.flashT > 0) comal.flashT -= dt;
   if (comal.tapFlashT > 0) comal.tapFlashT -= dt;
   if (comal.radialT > 0) comal.radialT -= dt;   // congelado durante el hit-stop
+  if (comal.tacoHopT > 0) comal.tacoHopT -= dt; // pulido H: salto congelado igual
   if (comal.humoT > 0){
     comal.humoT -= dt;
     if ((G.tick%5)===0) vapor(COMAL.x, COMAL.y-12, 2);
@@ -946,18 +985,28 @@ function updCliente(c, dt){
   const idx = fila.indexOf(c);
   c.moviendo = false;
   switch (c.estado){
-    case 'asoma':   // anticipación diegética: PEEK adentro, retrocede, y entra
+    case 'asoma':   // anticipación diegética de ENTRADA (ver nota de mkCliente)
       c.t += dt;
-      c.x = -30 + Math.sin(clamp(c.t/0.85,0,1)*Math.PI)*56;
-      if (c.t > 0.85){ c.estado='entra'; c.x = -14; }
+      if (c.vip){
+        // VIP: peek sinusoidal largo en slow-mo (coreografía r4, intacta)
+        c.x = -30 + Math.sin(clamp(c.t/0.85,0,1)*Math.PI)*56;
+        if (c.t > 0.85){ c.estado='entra'; c.x = -14; }
+      } else if (c.t >= J.spawn_beat_s){
+        // normal: beat QUIETO a medio cuerpo (sin sliding) y arranca
+        c.estado = 'entra';
+      }
       break;
     case 'entra': case 'cola': {
       if (idx < 0){ c.estado='sale'; break; }
       const tx = slotX(idx);
       if (Math.abs(c.x - tx) > 2){
         const dir = c.x < tx ? 1 : -1;
-        const dx = dir * (c.vip?150:120)*dt;
+        // pulido H: los primeros 2 pasos tras el asomo van RÁPIDOS
+        // (spawn_paso_mult) — solo entrando hacia adelante; el freno r3 remata
+        const bo = c.spawnBoost > 0 && dir > 0;
+        const dx = dir * (c.vip?150:120) * (bo ? J.spawn_paso_mult : 1) * dt;
         c.x += dx;
+        if (bo) c.spawnBoost -= Math.abs(dx);
         if ((dir>0 && c.x>tx) || (dir<0 && c.x<tx)) c.x = tx;
         zancada(c, dx); c.dir = dir;
       } else if (idx === 0){
@@ -985,11 +1034,17 @@ function updCliente(c, dt){
   if (c.frenoT > 0){                 // pose de freno SOSTENIDA (walk_freno_ticks)
     c.frenoT -= dt;
     c.ln.x = -c.frenoDir * J.walk_freno_lean; c.ln.v = 0;
+  } else if (c.spawnBoost > 0 && c.moviendo && c.dir > 0){
+    // pulido H (residual #1, 4/6): micro-lean ADELANTE sostenido durante los
+    // pasos rápidos de entrada — silueta de prisa (se suma al walk_lean del
+    // draw); al agotarse el boost el spring lo suelta elástico
+    c.ln.x = c.dir * J.spawn_lean; c.ln.v = 0;
   } else stepSpring(c.ln, J.spring_k, J.spring_amort, dt);   // release elástico
   if (c.prevMov && !c.moviendo){     // FRENÓ: lean atrás + micro-squash pesado
     c.frenoDir = c.dir;
     c.frenoT = J.walk_freno_ticks * TICK;
     c.sq.x = Math.min(c.sq.x, 1 - J.walk_freno_squash);
+    c.spawnBoost = 0;                // la llegada apaga la prisa de entrada
   } else if (!c.prevMov && c.moviendo){   // ARRANCÓ: lean adelante (anticipación)
     c.frenoT = 0;
     c.ln.x = c.dir * J.walk_freno_lean; c.ln.v = c.dir * 1.5;
@@ -1423,22 +1478,27 @@ function drawComal(){
     }
     ctx.lineCap = 'butt';
   }
+  // pulido H (defecto crónico del comal 3/6): las tortillas/taco SALTAN al tap
+  // — despegadas YA en el frame del golpe (el hit-stop congela tacoHopT en
+  // update() → el muestreo a 4fps las captura en el aire), y caen al decaer
+  const hop = comal.tacoHopT > 0
+    ? -J.comal_taco_salto_px * (comal.tacoHopT / J.comal_taco_salto_s) : 0;
   // tortillas según progreso de taps
   for (let i=0;i<comal.taps;i++){
     const a = i*2.1+0.5, d = 22;
     ctx.fillStyle = '#e8c97a';
-    ctx.beginPath(); ctx.ellipse(Math.cos(a)*d, Math.sin(a)*d*0.4-2, 11, 5, 0, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(Math.cos(a)*d, Math.sin(a)*d*0.4-2+hop, 11, 5, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.fillStyle = '#c9a860';
-    ctx.beginPath(); ctx.ellipse(Math.cos(a)*d, Math.sin(a)*d*0.4-2, 6, 2.6, 0, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(Math.cos(a)*d, Math.sin(a)*d*0.4-2+hop, 6, 2.6, 0, 0, Math.PI*2);
     ctx.fill();
   }
   // taco completo cociéndose (anticipación: humea antes de salir)
   if (comal.humoT>0){
     ctx.fillStyle = '#e8c97a';
-    ctx.beginPath(); ctx.arc(0,-4,13,Math.PI,0); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#4caf50'; ctx.fillRect(-9,-7,18,3);
-    ctx.fillStyle = '#c0392b'; ctx.fillRect(-7,-10,14,3);
+    ctx.beginPath(); ctx.arc(0,-4+hop,13,Math.PI,0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#4caf50'; ctx.fillRect(-9,-7+hop,18,3);
+    ctx.fillStyle = '#c0392b'; ctx.fillRect(-7,-10+hop,14,3);
   }
   // anillo de anticipación: el PRÓXIMO tap completa el taco
   const front0 = fila[0];
@@ -1606,9 +1666,14 @@ function drawCliente(c){
   if (c.dir < 0){ ctx.scale(-1, 1); }
   if (c.vip){ ctx.fillStyle='#ffd700'; drawStar(0, -h-8, 8); }
   ctx.restore();
-  // "!" del asomo (anticipación LEGIBLE de la llegada — juez r3)
-  if (c.estado==='asoma' && c.t>0.12 && c.t<0.78){
-    const ek = Math.min((c.t-0.12)*6, 1);
+  // "!" del asomo (anticipación LEGIBLE de la llegada — juez r3). Pulido H:
+  // en el normal acompaña el beat Y los pasos rápidos de entrada (la
+  // presentación completa); el VIP conserva su ventana del peek largo.
+  const avisa = c.vip ? (c.estado==='asoma' && c.t>0.12 && c.t<0.78)
+                      : (c.estado==='asoma' || c.spawnBoost > 0);
+  if (avisa){
+    const ek = c.vip ? Math.min((c.t-0.12)*6, 1)
+             : c.estado==='asoma' ? clamp(c.t/0.1, 0, 1) : 1;
     ctx.save(); ctx.translate(Math.max(c.x+10, 26), y-96); ctx.scale(ek,ek);
     ctx.fillStyle='#ffd700';
     ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill();
@@ -1639,6 +1704,14 @@ function drawCliente(c){
     // (1 frame/250ms) se saltaba. AHORA: rojo SIEMPRE presente; el pulso
     // (1.5→4 Hz) solo modula intensidad/grosor → toda muestra captura rojo.
     const puls = nm ? vipPulso() : 0;
+    // pulido H menor (G1-v2 01:00.220 "pulso pre-alerta tímido"): en la zona
+    // AMARILLA (antes del near-miss) la barra entera late en ESCALA (seno
+    // continuo ~1.8Hz, sin fase apagada — cada muestra a 4fps pilla un tamaño
+    // distinto); anticipación del fallo ANTES del rojo, que queda intacto
+    const pre = !nm && p < 0.5;
+    const psc = pre ? 1 + 0.09*Math.sin(G.simTime*11.3) : 1;
+    ctx.save();
+    ctx.translate(bx, by+bh/2); ctx.scale(psc, psc); ctx.translate(-bx, -(by+bh/2));
     ctx.fillStyle = 'rgba(0,0,0,0.5)'; rr(bx-bw/2-2, by-2, bw+4, bh+4, 5); ctx.fill();
     if (nm){                                    // marco ROJO pulsante de la barra
       ctx.strokeStyle = `rgba(239,68,68,${0.55+0.45*puls})`;
@@ -1648,6 +1721,7 @@ function drawCliente(c){
     ctx.fillStyle = p>0.5? '#4caf50' : !nm? '#ffd700'
       : (puls>0.5? '#ff8a7a' : '#ef4444');      // rojo↔rojo-claro: jamás se apaga
     rr(bx-bw/2, by, bw*p, bh, 4); ctx.fill();
+    ctx.restore();
     // rótulo SE VA!/LEAVING! con TEMBLOR continuo (presente en cada frame)
     let tx = bx, ty = by-6, tsc = 1;
     if (nm){

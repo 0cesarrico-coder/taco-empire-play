@@ -598,14 +598,23 @@ function drawComal(){
       ()=> tapComal());
 }
 
+/* walk-cycle REAL de la RONDA FULL (mismo mapeo del motor): en tránsito el
+   frame lo dicta la fase de zancada (floor(fase·N)%N); parado = w1 estable.
+   El playable no lleva pose aburrido (recorte deliberado — ver build.py). */
+function frameZancada(c){
+  const n = J.walk_frames_por_ciclo;
+  return ((((c.dist / J.walk_paso_px) % 1) * n) | 0) % n + 1;   // 1..n
+}
 function spriteCliente(c){
   const base = 'cli_' + c.spr;
   if (c.estado === 'feliz') return IMG[base + '_celebra'];
-  return IMG[base];
+  if (c.moviendo) return IMG[base + '_w' + frameZancada(c)];
+  return IMG[base + '_w1'];
 }
 function drawCliente(c){
   const ph = (c.dist / J.walk_paso_px) % 1;
   const stepPh = c.moviendo ? Math.sin(ph*Math.PI) : 0;
+  // walk_bob = 0 en config (el ciclo trae el bob dibujado); código intacto
   const bob = c.moviendo ? stepPh*J.walk_bob : Math.sin(G.simTime*2.2+c.x)*1.2;
   const y = c.y - bob - c.hop;
   const wsq = c.moviendo ? 1 + (stepPh-0.5)*2*J.walk_squash : 1;

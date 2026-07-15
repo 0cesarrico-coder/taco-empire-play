@@ -71,6 +71,23 @@ const seed = (() => {
   return m ? (parseInt(m[1], 10) >>> 0) : ((Date.now() % 100000) >>> 0);
 })();
 const DEMO_MODE = /[?&]demo=1/.test(location.search);
+/* ★LOTE 4 — NIVEL DE VIDA del experimento (?vida=A|B|C, aprobado 👤
+   2026-07-14): qué paquete de fixes de animación corre este build. La
+   escalera A⊂B⊂C vive en config §vida (data-driven); sin param = default C
+   (candidato a producción — smoke y videos del juez gatean sobre C salvo
+   override). Clase de un solo char: sin riesgo del bug histórico de
+   alternancia golosa (lección ?hud=s7|s77 — la alternativa larga va ANTES). */
+const VIDA = (() => {
+  const m = location.search.match(/[?&]vida=([ABCabc])(?![\w])/);
+  const niv = m ? m[1].toUpperCase() : CFG.vida.nivel_default;
+  return CFG.vida.niveles[niv] ? niv : CFG.vida.nivel_default;
+})();
+/* FIX.F2..F7 = booleans precomputados (legible y barato en el hot path) */
+const FIX = (() => {
+  const s = new Set(CFG.vida.niveles[VIDA]);
+  return { F2:s.has('F2'), F3:s.has('F3'), F4:s.has('F4'),
+           F5:s.has('F5'), F6:s.has('F6'), F7:s.has('F7') };
+})();
 
 /* ---------- PRNG determinista (mulberry32) ---------- */
 function mulberry32(a){ return function(){
@@ -123,6 +140,7 @@ const G = {
   skips:0, ofertaTransicionShown:false,
   autopilot: DEMO_MODE, seed, lang,
   tapsManual:0, tapAroOn:false, tapHintOn:false,   // fix UX 👤 "el tap no se ve"
+  vida: VIDA,               // nivel del experimento L4 (telemetría + smoke)
 };
 window.__game = G;
 
@@ -140,6 +158,19 @@ const STAND = { cx:330, postL:206, postR:454, toldoY:300, counterY:470, baseY:56
 const COMAL = { x:272, y:460, rx:52, ry:20 };
 const SIDEWALK_Y = 592;
 function slotX(i){ return 150 - i*54; }
+/* ★F6 (L4, L7 clipping/pop-in sev 5-8 — popin-78.25/78.75.png): carril de
+   banqueta POR NIVEL DE RENOVACIÓN. La ruta y=592 estaba calibrada para el
+   PUESTO (fondo_1); en el nivel 3 caía DENTRO de la banda de ventanas del
+   fondo_3 (y≈495-650) → los clientes emergían A TRAVÉS de la vitrina. Con el
+   carril por nivel caminan por la banda inferior visible (pies al sill/base
+   de la fachada) = POR DELANTE del edificio, y el asomo/'!' ocurre en el
+   borde del ENCUADRE (x_entrada), jamás dentro del local. Nivel 4+ reusa el
+   carril 3 (mismo fondo). El cliente fija su carril al SPAWN — la renovación
+   despide a todos ('sale') y los nuevos nacen ya en el carril correcto. */
+function carril(){
+  return FIX.F6 ? V.carril_por_nivel[String(Math.min(G.nivel, 3))]
+                : { y: SIDEWALK_Y, x_entrada: 2 };
+}
 
 /* ---------- pops (números/rotulos flotantes con spring) ---------- */
 const pops = [];
@@ -180,11 +211,23 @@ function dropConfetti(n){
     vy:130+vrng()*160, vx:(vrng()-0.5)*60, rot:vrng()*Math.PI, vr:(vrng()-0.5)*8,
     color:['#ff6b35','#4caf50','#ffd700','#fff'][ (vrng()*4)|0 ], s:4+vrng()*5 }); }
 
-/* ---------- vuelos (tacos / billetes / gemas en arco bezier) ---------- */
+/* ---------- vuelos (tacos / billetes / gemas en arco bezier) ----------
+   ★F7 (L4, L7 comida flotante sev 6): el control del bezier era FIJO
+   (cy = min−138) → el taco de un vuelo corto subía a la órbita (levitación
+   irreal). Ahora el TACO lleva arco RELATIVO a la distancia horizontal
+   (clamp de config) + sombra de suelo + −12% de escala. Los vuelos de
+   billete/gema al HUD conservan el −138: son el juice de monedas VALIDADO
+   que este lote no toca (regla explícita del encargo). `yg` = línea de
+   suelo bajo el vuelo (los pies del cliente destino) para la sombra. */
 const vuelos = [];
-function vuelo(tipo, x0,y0, x1,y1, dur, cb){
-  vuelos.push({tipo, x0,y0,x1,y1, cx:(x0+x1)/2, cy:Math.min(y0,y1)-138,
-    t:0, dur, cb}); }
+function vuelo(tipo, x0,y0, x1,y1, dur, cb, yg){
+  const arcoRel = FIX.F7 && tipo === 'taco';
+  const cy = arcoRel
+    ? Math.min(y0,y1) - clamp(Math.abs(x1-x0)*J.vuelo_arco_factor,
+                              J.vuelo_arco_min_px, J.vuelo_arco_max_px)
+    : Math.min(y0,y1)-138;
+  vuelos.push({tipo, x0,y0,x1,y1, cx:(x0+x1)/2, cy,
+    t:0, dur, cb, yg: arcoRel ? yg : null}); }
 
 /* ============================================================================
    CONSTRUCCIONES (pista 1) y MEJORAS (pista 2) — costos desde config,
@@ -559,11 +602,16 @@ let cliUid = 0;   // identidad estable por cliente (smoke del walk-cycle)
    EXISTENTE (r3) al llegar al slot. El VIP conserva su entrada slow-mo con
    peek largo (coreografía elogiada 3/3 en r4 — no se toca). */
 function mkCliente(esVip){
+  const ca = carril();   // ★F6: carril del nivel ACTUAL, fijado al spawn
   return { uid: cliUid++, vip:!!esVip, estado:'asoma', t:0,
-    x: esVip ? -26 : 2, y:SIDEWALK_Y,
+    x: esVip ? ca.x_entrada - 28 : ca.x_entrada,   // VIP offscreen (peek r4)
+    y: ca.y,
     dist:0, pasoN:0, moviendo:false, dir:1,
     spawnBoost: esVip ? 0 : J.walk_paso_px*2,   // px de pasos RÁPIDOS de entrada
     ln:mkSpring(0), frenoT:0, frenoDir:1, prevMov:false,
+    // ★F5: spring DEDICADO de transición de pose (settle ~143ms, banda
+    // 100-160ms A4) — el spring base c.sq (k=130) es del juice de impactos
+    ts:mkSpring(1), aburKick:false,
     col: esVip ? '#ffd700' : PAL_CLI[(rng()*PAL_CLI.length)|0],
     spr: (rng()*4)|0,                 // pool de 4 canons (determinista por seed)
     alto: esVip ? 1.12 : 0.92+rng()*0.16,
@@ -675,9 +723,10 @@ function tacoListo(){
   const front = fila[0];
   vapor(COMAL.x, COMAL.y-14, 6);
   if (!front) return;
+  // F7: front.y = línea de pies del destino → suelo de la sombra del vuelo
   vuelo('taco', COMAL.x, COMAL.y-16, front.x+6, front.y-58, 0.45, ()=>{
     entregarTaco(front);
-  });
+  }, front.y);
 }
 function entregarTaco(c){
   if (!clientes.includes(c)) return;
@@ -903,6 +952,15 @@ function update(dt){
     if (vip.estado==='espera'){
       vip.paciencia -= dt/E.vip_paciencia_s;  // el contador que baja hasta casi-cero
       if (G.autopilot) vip.paciencia = Math.max(vip.paciencia, 0.02); // rescate garantizado SOLO demo
+      // ★F5(b): la costura espera(w1)→aburrido del VIP es el ÚNICO swap de
+      // pose sin freno r3 que lo venda — nudge del spring de transición en el
+      // MISMO tick en que spriteKeyCliente cruza su umbral 0.6 (mismo número,
+      // a la par): SNAP a pose + secondary motion (Skullgirls, A4)
+      if (FIX.F5 && !vip.aburKick && vip.paciencia < 0.6 &&
+          vip.servidos < vip.pedidos){
+        vip.aburKick = true;
+        vip.ts.x = 1 - J.trans_snap_squash;
+      }
       if (vip.paciencia < J.vip_near_miss_umbral && vip.servidos < vip.pedidos){
         G.vipNearMiss = true; G.vipNearMissDone = true;
       }
@@ -944,6 +1002,21 @@ function update(dt){
     if ((G.tick%5)===0) vapor(COMAL.x, COMAL.y-12, 2);
     if (comal.humoT <= 0) tacoListo();
   }
+  // ★F4 (L4, S2b escena muerta): VAPOR CONTINUO — el comal caliente siempre
+  // humea un poco, INDEPENDIENTE del cocinado (A3: permanencia/loops
+  // ambientales); y la bandeja horneada del carrito s7 humea en el nivel 1
+  // (la vida del carrito citado "estatua" por el juez 00:08.5 — el sprite no
+  // trae figura humana recortable: límite horneado, config §visual). Emitido
+  // en update() por tick (determinista, congelable por el hit-stop como todo
+  // el juice); 1 partícula/emisión desfasada media cadencia entre emisores =
+  // densidad moderada (A3: "used in excess… annoy").
+  if (FIX.F4 && G.state === 'juego'){
+    const nV = Math.max(1, Math.round(J.amb_vapor_cada_s / TICK));
+    const comalOn = G.nivel >= 2 || construcciones[0].comprada;
+    if (comalOn && (G.tick % nV) === 0) vapor(COMAL.x, COMAL.y-12, 1);
+    if (G.nivel === 1 && ((G.tick + (nV >> 1)) % nV) === 0)
+      vapor(V.amb_carrito_vapor.x, V.amb_carrito_vapor.y, 1);
+  }
 
   // ---- redes de seguridad de terminación: SOLO el demo autopilot.
   //      En manual el juego es LIBRE (anti-patrón pagado: una red de demo
@@ -980,17 +1053,26 @@ function zancada(c, dx){
   c.moviendo = true;
 }
 
+/* ★F5: ¿la fase de zancada está EN CONTACTO (pisada w1/w5)? — tolerancia
+   sub-px para clavar la costura del pose-matching */
+function enContacto(c){
+  const f = c.dist % J.walk_paso_px;
+  return f < 0.75 || J.walk_paso_px - f < 0.75;
+}
+
 function updCliente(c, dt){
   stepSpring(c.sq, J.spring_k, J.spring_amort, dt);
+  stepSpring(c.ts, J.trans_spring_k, J.trans_spring_amort, dt);  // F5: settle rápido
   const idx = fila.indexOf(c);
   c.moviendo = false;
   switch (c.estado){
     case 'asoma':   // anticipación diegética de ENTRADA (ver nota de mkCliente)
       c.t += dt;
       if (c.vip){
-        // VIP: peek sinusoidal largo en slow-mo (coreografía r4, intacta)
-        c.x = -30 + Math.sin(clamp(c.t/0.85,0,1)*Math.PI)*56;
-        if (c.t > 0.85){ c.estado='entra'; c.x = -14; }
+        // VIP: peek sinusoidal largo en slow-mo (coreografía r4, intacta);
+        // F6: anclado al borde del encuadre del carril del nivel
+        c.x = (carril().x_entrada - 32) + Math.sin(clamp(c.t/0.85,0,1)*Math.PI)*56;
+        if (c.t > 0.85){ c.estado='entra'; c.x = carril().x_entrada - 16; }
       } else if (c.t >= J.spawn_beat_s){
         // normal: beat QUIETO a medio cuerpo (sin sliding) y arranca
         c.estado = 'entra';
@@ -1004,11 +1086,47 @@ function updCliente(c, dt){
         // pulido H: los primeros 2 pasos tras el asomo van RÁPIDOS
         // (spawn_paso_mult) — solo entrando hacia adelante; el freno r3 remata
         const bo = c.spawnBoost > 0 && dir > 0;
-        const dx = dir * (c.vip?150:120) * (bo ? J.spawn_paso_mult : 1) * dt;
+        let dx = dir * (c.vip?150:120) * (bo ? J.spawn_paso_mult : 1) * dt;
+        // ★F6: queue spacing — si el de adelante EN EL SENTIDO DE LA MARCHA
+        // está a <carril_gap_px, el paso se FRENA (dx=0 → el freno r3 lo
+        // planta; cura el atravesarse de 00:07.25). 40 < 54 px entre slots →
+        // la fila formada jamás lo siente.
+        if (FIX.F6){
+          const veci = dir > 0 ? fila[idx-1] : fila[idx+1];
+          if (veci){
+            dx = dir > 0
+              ? Math.min(dx, Math.max(0, veci.x - V.carril_gap_px - c.x))
+              : Math.max(dx, Math.min(0, veci.x + V.carril_gap_px - c.x));
+          }
+        }
         c.x += dx;
         if (bo) c.spawnBoost -= Math.abs(dx);
         if ((dir>0 && c.x>tx) || (dir<0 && c.x<tx)) c.x = tx;
-        zancada(c, dx); c.dir = dir;
+        if (dx !== 0){ zancada(c, dx); c.dir = dir; }
+      } else if (FIX.F5 && !enContacto(c)){
+        // ★F5(a) POSE-MATCHING en la costura (A4: el hard-switch SE QUEDA —
+        // crossfade alpha entre poses = ghosting PROHIBIDO; lo que se
+        // empareja es la POSE): la x ya está clavada en el slot pero la fase
+        // del ciclo va EN EL AIRE (w2..w4/w6..w8). Micro-estado "asentando":
+        // la fase avanza SIN trasladar x — el medio-paso de ajuste de una
+        // persona real al detenerse — a velocidad ×trans_asienta_mult
+        // (≤200ms, banda Wertheimer 30-200ms) hasta el CONTACTO más cercano
+        // (w1 o w5) y AHÍ conmuta. El freno r3 (lean+squash sostenidos,
+        // elogiado por el juez) dispara justo al cerrar = SNAP a pose +
+        // secondary motion que la vende (patrón Skullgirls GDC 2014, A4).
+        // c.moviendo sigue true (zancada) → el smoke walk lo ve como
+        // tránsito legítimo, jamás como "parado en w2..w8".
+        const v = (c.vip ? 150 : 120) * J.trans_asienta_mult;
+        const paso = J.walk_paso_px;
+        zancada(c, Math.min(v*dt, paso - (c.dist % paso)));
+        if (enContacto(c)){
+          c.dist = Math.round(c.dist/paso) * paso;  // clava el frame de contacto
+          // conmutación cayendo en w5 → el parado muestra w1 (contactos casi
+          // espejo = la costura más corta del ciclo): el spring dedicado c.ts
+          // vende el swap de piernas (settle ~143ms, 1-2 rebotes)
+          if ((Math.round(c.dist/paso) % J.walk_pasos_por_ciclo) !== 0)
+            c.ts.x = 1 - J.trans_snap_squash;
+        }
       } else if (idx === 0){
         c.estado = 'pide'; c.t = 0; c.sq.v += 3;
       } else c.estado = 'cola';
@@ -1019,13 +1137,27 @@ function updCliente(c, dt){
       break;
     case 'espera': break;                    // el comal manda
     case 'feliz':
+      // (la ENTRADA a celebra ya llega con nudge de spring — entregarTaco
+      // kickea c.sq 1.25/-4 en el MISMO tick que venta() conmuta la pose:
+      // el patrón F5(b) snap+secondary estaba cubierto aquí desde el P4)
       c.t += dt; c.hop = Math.abs(Math.sin(c.t*9))*14*(1-c.t);
       if (c.t > 0.7){ c.estado='sale'; c.hop=0; }
       break;
-    case 'sale':
-      c.x += 175*dt; zancada(c, 175*dt); c.dir = 1;
+    case 'sale': {
+      let dx = 175*dt;
+      // ★F6: spacing también entre SALIENTES (misma marcha →): el de atrás
+      // sigue al de adelante a gap constante, jamás lo atraviesa
+      if (FIX.F6){
+        let lim = Infinity;
+        for (const o of clientes)
+          if (o !== c && o.estado === 'sale' && o.x > c.x)
+            lim = Math.min(lim, o.x - V.carril_gap_px);
+        dx = Math.min(dx, Math.max(0, lim - c.x));
+      }
+      c.x += dx;
+      if (dx > 0){ zancada(c, dx); c.dir = 1; }
       if (c.x > W+40) c.estado = 'fuera';
-      break;
+      break; }
   }
   // ---- cura r3 (defecto 3/3: "frenan en seco" / "deslizamiento rígido"):
   //      anticipación de FRENO y ARRANQUE por SILUETA — el lean cambia la
@@ -1141,7 +1273,15 @@ function fondoCacheado(){
 }
 
 let hits = [];   // hitboxes del frame (para modo manual)
-function hit(x,y,w,h,fn){ hits.push({x,y,w,h,fn}); }
+/* `vivo` (opcional): guard de VIVACIDAD del hit — el array de hits es del
+   ÚLTIMO render, así que si un overlay se cerró síncronamente en este mismo
+   frame su bloqueador fullscreen queda STALE un frame y se TRAGA el click
+   siguiente (carrera cazada por fase_lote3 del smoke, 5/10 flaky: click al
+   RECLAMAR del welcome-back + click a comprar <16ms después = el 2º moría
+   en el hit(0,0,W,H) del WB ya cerrado). Un humano no tapea 2 veces en
+   <1 frame en lugares distintos, pero el harness sí — y el motor no debe
+   comerse clicks contra overlays que ya no existen. */
+function hit(x,y,w,h,fn,vivo){ hits.push({x,y,w,h,fn,vivo}); }
 
 function render(){
   hits = [];
@@ -1158,6 +1298,7 @@ function render(){
   const z = cam.zoom.x;
   ctx.translate(W/2 + shx, 430 + shy); ctx.scale(z, z); ctx.translate(-W/2, -430);
 
+  if (FIX.F4) drawAmbiente();   // ★F4: halo del farol (bajo puesto y actores)
   drawPuesto();
   drawProps();   // props de construcción materializados (LOTE 3 👤)
   // clientes: primero los de cola (orden), al final los que salen (delante)
@@ -1239,7 +1380,7 @@ function render(){
 /* ---------- welcome-back: ganancia offline con ×2 por ad ---------- */
 function drawWB(){
   if (!wb.visible) return;
-  hit(0,0,W,H, ()=>{});      // el modal bloquea los taps de abajo
+  hit(0,0,W,H, ()=>{}, ()=>wb.visible);   // bloqueador con guard de vivacidad
   const k = wb.sl.x;
   ctx.save();
   ctx.globalAlpha = clamp(k*1.4,0,1);
@@ -1273,7 +1414,7 @@ function drawWB(){
 /* ---------- TIENDA: la escalera IAP completa (módulo iap.js + stub) -------- */
 function drawTienda(){
   if (!tienda.abierta) return;
-  hit(0,0,W,H, ()=>{});      // el modal bloquea los taps de abajo
+  hit(0,0,W,H, ()=>{}, ()=>tienda.abierta);   // bloqueador con guard (carrera)
   const k = tienda.sl.x;
   ctx.save();
   ctx.globalAlpha = clamp(k*1.3,0,1);
@@ -1352,11 +1493,57 @@ function drawTienda(){
    gameplay. La evolución visual del puesto ahora la llevan los FONDOS por
    renovación; los botones del panel siguen mostrando el progreso de compra. */
 function comprada(i){ return construcciones[i] && construcciones[i].comprada; }
+
+/* ---------- ★F4 (L4): capa ambiental del motor ------------------------------
+   Elementos PROPIOS del motor sobre los fondos horneados. LÍMITE DOCUMENTADO:
+   los banderines/guirnaldas/luces de los fondos E2 están HORNEADOS en el PNG
+   y NO se animan (recortar el fondo está prohibido); en su lugar el motor
+   aporta su propia vida: vapor continuo (update), sombras de contacto
+   (carrito/comal), sway del prop LETRERO (drawProps) y este halo pulsante
+   sobre el farol horneado de cada fondo. El pulso modula alpha SIN fase
+   apagada (lección vip_latido) con fase offseteada por posición-mundo (A3:
+   "use world position to offset the phase"); amplitudes de fondo ≤50% del
+   juice focal (A3: la periferia detecta movimiento — sub-tunear el fondo). */
+let gradFarol = null, gradFarolNivel = 0;
+function drawAmbiente(){
+  const n = Math.min(G.nivel, 3);
+  const F = V.amb_farol_por_nivel[String(n)];
+  if (!F) return;
+  if (!gradFarol || gradFarolNivel !== n){     // cacheado por nivel (perf)
+    gradFarol = ctx.createRadialGradient(0,0,F.r*0.25, 0,0,F.r*2.2);
+    gradFarol.addColorStop(0, 'rgba(255,214,120,1)');
+    gradFarol.addColorStop(1, 'rgba(255,214,120,0)');
+    gradFarolNivel = n;
+  }
+  const ph = Math.sin(G.simTime * Math.PI*2 / J.amb_farol_period_s + F.x*0.05);
+  ctx.save();
+  ctx.translate(F.x, F.y);
+  ctx.globalAlpha = J.amb_farol_alpha * (0.62 + 0.38*ph);  // nunca 0: sin estrobo
+  ctx.fillStyle = gradFarol;
+  ctx.beginPath(); ctx.arc(0, 0, F.r*2.2, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
 function drawPuesto(){
   if (G.nivel === 1){
     const c = V.carrito;
     const im = IMG.carrito;
-    ctx.drawImage(im, c.x, c.y, c.w, c.w * im.height / im.width);
+    const h = c.w * im.height / im.width;
+    // ★F4: sombra de contacto del carrito — el flood-fill del pipeline de
+    // assets comió la sombra horneada del render (mismo caso que los props) y
+    // el carrito flotaba como calcomanía (A3: el blob bajo el sprite es la
+    // cura #1); misma familia visual que las sombras de props/clientes
+    if (FIX.F4){
+      ctx.save();
+      ctx.globalAlpha = J.amb_sombra_alpha;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(c.x + c.w/2, c.y + h - 5, c.w*0.44, 13, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.drawImage(im, c.x, c.y, c.w, h);
   }
 }
 
@@ -1383,6 +1570,17 @@ function drawProps(){
     ctx.ellipse(P.x, P.base - 2, w*0.42*sx, w*0.1, 0, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
     ctx.translate(P.x, P.base);
+    // ★F4 (L4): el LETRERO oscila — capas de senos de amplitud/fase variables
+    // con offset por posición-mundo (fórmula A3 verbatim: "layer multiple
+    // sinuses… use world position to offset the phase"), pivote en la BASE
+    // (prop de pie); frecuencias no armónicas 2.1/3.7 rad/s = nunca se repite
+    // idéntico. Amplitud de fondo ≤50% del foco (0.8° ≈ 13% del walk_lean).
+    if (FIX.F4 && key === 'letrero'){
+      const w0 = P.x * 0.013;
+      ctx.rotate(J.amb_letrero_amp_rad *
+        (0.62*Math.sin(G.simTime*2.1 + w0) +
+         0.38*Math.sin(G.simTime*3.7 + w0*2.3)));
+    }
     ctx.scale(sx, sy);
     ctx.drawImage(im, -w/2, -h, w, h);
     ctx.restore();
@@ -1432,6 +1630,17 @@ function drawComal(){
     ctx.fillStyle = gradComal;
     ctx.globalAlpha = Math.min(puls, 1);
     ctx.beginPath(); ctx.ellipse(0,0,COMAL.rx*1.5,COMAL.ry*1.9,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  // ★F4: sombra de contacto en el suelo — el disco tenía base oscura (rim)
+  // pero ninguna sombra de ANCLAJE contra el carrito (A3: blob = cura #1
+  // anti-flotado); vive dentro del transform del squash (se deforma con el
+  // tap, como el disco)
+  if (FIX.F4){
+    ctx.globalAlpha = J.amb_sombra_alpha * 0.6;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(0,9,COMAL.rx*1.28,COMAL.ry*1.02,0,0,Math.PI*2);
+    ctx.fill();
     ctx.globalAlpha = 1;
   }
   // disco
@@ -1600,9 +1809,20 @@ function drawComal(){
    floor(fase·N)%N. Parado = w1 (contacto estable, sin parpadeo). Poses
    celebra/aburrido se CONSERVAN tal cual (bug de identidad cruzada
    POSPUESTO 👤 — no tocar aquí). */
+/* ★F2 (L4, S1 patinaje sev 6 — diagnóstico c-lote4): el FRAME lo indexa el
+   CICLO COMPLETO (walk_paso_px × walk_pasos_por_ciclo = 96px), porque los 8
+   frames traen DOS pisadas (w1/w5 = contactos opuestos verificados). Antes la
+   fase de PISADA (44px) consumía el ciclo entero → 5.45 pasos/s con avance de
+   22px/paso = "moonwalk" literal del juez. Distance-matching canónico (A1
+   deepresearch: la fase la dicta la DISTANCIA, no un timer — UE5.8 verbatim).
+   Las PISADAS (squash de contacto vía zancada(), freno) siguen cada
+   walk_paso_px — esa mitad ya estaba bien y no se toca. */
+function cicloPx(){
+  return FIX.F2 ? J.walk_paso_px * J.walk_pasos_por_ciclo : J.walk_paso_px;
+}
 function frameZancada(c){
   const n = J.walk_frames_por_ciclo;
-  return ((((c.dist / J.walk_paso_px) % 1) * n) | 0) % n + 1;   // 1..n
+  return ((((c.dist / cicloPx()) % 1) * n) | 0) % n + 1;   // 1..n
 }
 function spriteKeyCliente(c){
   const base = 'cli_' + c.spr;
@@ -1618,16 +1838,59 @@ function drawCliente(c){
   // walk-cycle con PESO acoplado a la ZANCADA (cura r2, defecto 6/6): la fase
   // del paso = distancia recorrida / walk_paso_px — bob 0 en CADA contacto y
   // máximo a mitad del paso; el squash de contacto lo dispara zancada() por
-  // pisada vía c.sq (spring), no un seno libre sobre el tiempo global
-  const ph = (c.dist / J.walk_paso_px) % 1;              // fase de la zancada
+  // pisada vía c.sq (spring), no un seno libre sobre el tiempo global.
+  // F2 (L4): esta fase de PISADA queda intacta a propósito — solo el FRAME
+  // del ciclo pasó a indexarse por ciclo completo (ver frameZancada)
+  const ph = (c.dist / J.walk_paso_px) % 1;              // fase de la PISADA
   const stepPh = c.moviendo ? Math.sin(ph*Math.PI) : 0;  // 0=contacto, 1=aire
-  // walk_bob = 0 en config desde la RONDA FULL (el ciclo de 8 frames YA trae
-  // el bob dibujado); el código se conserva — knob re-activable si se vuelve
-  // a siluetas procedurales. El micro-bob de reposo (respiración) sigue vivo.
-  const bob = c.moviendo ? stepPh*J.walk_bob : Math.sin(G.simTime*2.2+c.x)*1.2;
+  // ★F3 (L4, S2 estatismo sev 7-8): idle PROCEDURAL del parado sobre el frame
+  // congelado — aplica a espera/cola/pide/primero-de-la-fila/VIP (todo parado).
+  // Senos PUROS, jamás springs aquí (el "rebote de globo" 👤 ES el easing
+  // elástico — A2 deepresearch); pivote en los PIES (el translate va al suelo
+  // del cliente — A2: pivote al centro despega los pies): (a) respiración =
+  // escala Y ~1% @0.29Hz; (b) weight-shift = rotación ±0.7° @0.18Hz; (c)
+  // DESINCRONIZACIÓN OBLIGATORIA por uid — offset de fase + jitter ±10% en
+  // amplitud/frecuencia vía hash2 (determinista, cero consumo del rng del
+  // sim); sin esto los parados marchan en lockstep robótico (A2, refutado).
+  let idleSy = 1, idleRot = 0, shiftX = 0;
+  if (FIX.F3 && !c.moviendo){
+    const jt = J.idle_desync_jitter;
+    const kaR = 1 + (hash2(c.uid, 11) - 0.5) * 2 * jt;   // amplitud respiración
+    const kfR = 1 + (hash2(c.uid, 13) - 0.5) * 2 * jt;   // frecuencia respiración
+    const kaS = 1 + (hash2(c.uid, 19) - 0.5) * 2 * jt;   // amplitud sway
+    const kfS = 1 + (hash2(c.uid, 23) - 0.5) * 2 * jt;   // frecuencia sway
+    const f0  = hash2(c.uid, 17) * Math.PI * 2;          // fase propia
+    idleSy  = 1 + J.idle_resp_amp * kaR *
+      Math.sin(G.simTime * Math.PI*2 / J.idle_resp_period_s * kfR + f0);
+    idleRot = J.idle_sway_deg * Math.PI/180 * kaS *
+      Math.sin(G.simTime * Math.PI*2 / J.idle_sway_period_s * kfS + f0*1.7);
+    // r2 (serie I: sway fino sub-umbral a fps4 — "cola congelada" pese al
+    // idle): weight-shift DISCRETO — cada idle_shift_period_s el parado
+    // ALTERNA una pose sostenida (tilt+x de cambio de apoyo) con rampa
+    // smoothstep de idle_shift_rampa_s. Pose sostenida = silueta que el
+    // muestreo de 250ms SÍ pilla (JUICE-PERCEPTIBLE); jamás spring aquí.
+    const kp  = 1 + (hash2(c.uid, 29) - 0.5) * 2 * jt;
+    const per = J.idle_shift_period_s * kp;
+    const t0  = G.simTime / per + hash2(c.uid, 31);
+    const lado = (Math.floor(t0) % 2) ? 1 : -1;
+    const tRel = (t0 % 1) * per;
+    const s = Math.min(1, tRel / J.idle_shift_rampa_s);
+    const e = s * s * (3 - 2 * s);                       // smoothstep
+    const v = lado * (2 * e - 1);                        // −lado → +lado
+    idleRot += v * J.idle_shift_tilt_deg * Math.PI / 180;
+    shiftX   = v * J.idle_shift_x_px;
+  }
+  // walk_bob: reactivado en r2 (serie I: 3 juicios del gate neutro pidieron
+  // bounce vertical por paso — el bob DIBUJADO en los frames a ~10fps de anim
+  // se pierde al muestreo fps4; el bob de POSICIÓN sí lee). No es el
+  // bob-desacoplado histórico: stepPh va por fase de zancada (dist/paso).
+  const bob = c.moviendo ? stepPh*J.walk_bob
+            : (FIX.F3 ? 0 : Math.sin(G.simTime*2.2+c.x)*1.2);
   const y = c.y - bob - c.hop;
   const wsq = c.moviendo ? 1 + (stepPh-0.5)*2*J.walk_squash : 1;
-  const sq = c.sq.x * wsq, alto = c.alto;
+  // F5: c.ts (spring de transición) multiplica el squash — inerte en 1 salvo
+  // nudge de costura (w5→w1, VIP→aburrido); settle ~143ms con amort alta
+  const sq = c.sq.x * wsq * c.ts.x, alto = c.alto;
   ctx.save();
   // aura VIP
   if (c.vip){
@@ -1649,11 +1912,15 @@ function drawCliente(c){
   ctx.globalAlpha = 1;
   // vibración preventiva al ordenar (anticipación pedida por el juez r2)
   const wig = c.estado==='pide' ? Math.sin(G.simTime*22)*1.6 : 0;
-  ctx.translate(c.x + wig, y);
+  ctx.translate(c.x + wig + shiftX, y);   // shiftX = cambio de apoyo r2 (parados)
   if (c.moviendo) ctx.rotate(c.dir*J.walk_lean);         // lean hacia la marcha
   else if (c.estado==='asoma') ctx.rotate(0.16);         // peek inclinado del asomo
-  ctx.rotate(c.ln.x);   // cura r3: lean de freno/arranque (silueta legible a 4fps)
-  ctx.scale(1/Math.sqrt(sq), sq);
+  // cura r3: lean de freno/arranque + F3: weight-shift idle (ambos rotaciones
+  // con pivote en los pies — se suman sin pelearse)
+  ctx.rotate(c.ln.x + idleRot);
+  // F3: la respiración multiplica SOLO la Y (A2: pecho sube; la compensación
+  // X del squash es de impactos, no de respirar)
+  ctx.scale(1/Math.sqrt(sq), sq * idleSy);
   ctx.scale(alto, alto);
   // sprite del pool (RONDA FULL: ciclo w1..w8 + poses celebra/aburrido)
   // dentro del MISMO tren de transforms E-anim — el squash de llegada y la
@@ -1750,10 +2017,25 @@ function drawVuelo(v){
   const t = easeOut(clamp(v.t,0,1));
   const x = lerp(lerp(v.x0,v.cx,t), lerp(v.cx,v.x1,t), t);
   const y = lerp(lerp(v.y0,v.cy,t), lerp(v.cy,v.y1,t), t);
+  // ★F7: sombra elíptica tenue que acompaña el vuelo del taco EN EL SUELO
+  // (ancla visual — A3: la sombra ata el objeto al mundo); se encoge y
+  // aclara con la altura → el ojo lee la parábola, no una levitación
+  if (v.yg != null){
+    const rel = clamp((v.yg - y) / 140, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = J.vuelo_sombra_alpha * (1 - 0.55*rel);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(x, v.yg + 2, 13*(1 - 0.4*rel), 4.2*(1 - 0.4*rel), 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
   ctx.save(); ctx.translate(x,y);
   if (v.tipo==='taco'){
     ctx.rotate(v.t*5.5);                       // spin procedural del vuelo
-    ctx.drawImage(IMG.icono_taco, -16, -15, 32, 30);
+    // F7: −12% de escala en vuelo (leído más lejos del ojo, no pegado a cámara)
+    const kE = FIX.F7 ? J.vuelo_item_escala : 1;
+    ctx.drawImage(IMG.icono_taco, -16*kE, -15*kE, 32*kE, 30*kE);
   } else if (v.tipo==='billete'){
     ctx.rotate(Math.sin(v.t*11)*0.55);
     ctx.scale(1, 0.55+0.45*Math.abs(Math.cos(v.t*8)));  // flip 3D del billete
@@ -2065,7 +2347,7 @@ function drawStarter(){
 
 /* ---------- overlay de ad simulado (el juego sigue detrás) ---------- */
 function drawAdOverlay(){
-  hit(0,0,W,H, ()=>{});      // el ad bloquea los taps de abajo
+  hit(0,0,W,H, ()=>{}, ()=>!!ads.overlay);   // bloqueador con guard (carrera)
   const o = ads.overlay, k = clamp(o.t/o.dur, 0, 1);
   const fade = o.done ? clamp(1-(o.t-o.dur)/J.ad_out_s, 0, 1) : 1;
   // cura r3: el dimmer del 72% en 0.15s era <1 frame a fps=4 = el "corte seco"
@@ -2112,7 +2394,13 @@ function drawAdOverlay(){
 /* ---------- oferta anclada a TRANSICIÓN (n30): panel NO bloqueante ---------- */
 function drawOfertaTrans(){
   if (!ofertaTrans.visible) return;
-  const y0 = 250;                       // debajo del slot de la starter (122)
+  // r2 (gate A-t1v1 00:42: el cartel flotante "carece de balanceo o bounce
+  // pasivo"): flotación vertical suave — seno puro lento (F4), desfasado del
+  // farol (períodos 3.2 vs 3.7) para no sincronizar el ambiente
+  const ofBob = FIX.F4
+    ? Math.sin(G.simTime * Math.PI*2 / J.oferta_cartel_period_s) * J.oferta_cartel_bob_px
+    : 0;
+  const y0 = 250 + ofBob;               // debajo del slot de la starter (122)
   ctx.save();
   ctx.drawImage(IMG.placa_turquesa, 50, y0, W-100, 108);  // placa LOTE 1
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; rr(50, y0, W-100, 108, 14); ctx.stroke();
@@ -2142,7 +2430,7 @@ function drawOfertaTrans(){
 /* ---------- panel MID (⭐ PRO): saltos · free cash · permanentes ---------- */
 function drawMid(){
   if (!mid.abierta) return;
-  hit(0,0,W,H, ()=>{});      // el modal bloquea los taps de abajo
+  hit(0,0,W,H, ()=>{}, ()=>mid.abierta);   // bloqueador con guard (carrera)
   const k = mid.sl.x;
   ctx.save();
   ctx.globalAlpha = clamp(k*1.3,0,1);
@@ -2285,6 +2573,7 @@ cv.addEventListener('pointerdown', (e)=>{
   const y = (e.clientY - r.top) * (H/r.height);
   for (let i=hits.length-1;i>=0;i--){
     const h2 = hits[i];
+    if (h2.vivo && !h2.vivo()) continue;   // bloqueador stale: el click pasa
     if (x>=h2.x && x<=h2.x+h2.w && y>=h2.y && y<=h2.y+h2.h){ h2.fn(); return; }
   }
 });
@@ -2363,6 +2652,17 @@ G.dbg = {
   walkInfo: ()=> clientes.map(c=>({ uid:c.uid, key:spriteKeyCliente(c),
     mov:c.moviendo, estado:c.estado })),
   walkAssets: ()=> Object.keys(IMG).filter(k=>/^cli_\d_w\d$/.test(k)).length,
+  // LOTE 4 (verificación del experimento vida): nivel activo + fixes + carril
+  vidaInfo: ()=> ({ nivel: VIDA, fixes: CFG.vida.niveles[VIDA] }),
+  clientesXY: ()=> clientes.map(c=>({ x:+c.x.toFixed(1), y:c.y,
+    estado:c.estado })),
+  // estado FÍSICO completo de un cliente (depuración de costuras/carril —
+  // lee las variables reales, no fabrica nada)
+  cliDetalle: (i)=> { const c = clientes[i]; if (!c) return null;
+    return { uid:c.uid, x:+c.x.toFixed(2), y:c.y, dist:+c.dist.toFixed(2),
+      ln:+c.ln.x.toFixed(4), ts:+c.ts.x.toFixed(4), sq:+c.sq.x.toFixed(4),
+      frenoT:+c.frenoT.toFixed(3), dir:c.dir, estado:c.estado,
+      mov:c.moviendo, boost:+c.spawnBoost.toFixed(1) }; },
 };
 
 return { G, resumen };

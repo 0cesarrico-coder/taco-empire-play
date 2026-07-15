@@ -43,6 +43,8 @@ const REQUERIDAS = {
   visual: [
     'hud_estilo', 'carrito', 'cliente_alto_px', 'starter_banda', 'dpr_max',
     'props', 'tap_hit_factor',
+    'amb_farol_por_nivel', 'amb_carrito_vapor',
+    'carril_por_nivel', 'carril_gap_px',
   ],
   ritmo: [
     'cooldown_overlay_s', 'cooldown_overlay_demo_s', 'renov_dur_s',
@@ -53,7 +55,7 @@ const REQUERIDAS = {
     'shake_intensidad', 'shake_tap', 'hitstop_ticks_tap', 'hitstop_ticks_grande',
     'walk_bob', 'walk_paso_px', 'walk_squash', 'walk_squash_contacto',
     'walk_lean', 'walk_freno_lean', 'walk_freno_squash', 'walk_freno_ticks',
-    'walk_frames_por_ciclo',
+    'walk_frames_por_ciclo', 'walk_pasos_por_ciclo',
     'spawn_beat_s', 'spawn_lean', 'spawn_paso_mult',
     'flash_comal_s', 'flash_tap_s', 'shake_venta',
     'impacto_radial_lineas', 'impacto_radial_dur_s', 'comal_pop_escala',
@@ -71,7 +73,22 @@ const REQUERIDAS = {
     'prop_spawn_escala0', 'prop_spawn_v', 'prop_polvo_n', 'prop_spawn_shake',
     'tap_aro_grosor', 'tap_aro_hz', 'tap_aro_rayos', 'tap_glow_alpha',
     'tap_hint_taps',
+    'idle_resp_amp', 'idle_resp_period_s', 'idle_sway_deg',
+    'idle_sway_period_s', 'idle_desync_jitter',
+    'idle_shift_period_s', 'idle_shift_tilt_deg', 'idle_shift_x_px',
+    'idle_shift_rampa_s',
+    'amb_vapor_cada_s', 'amb_sombra_alpha', 'amb_letrero_amp_rad',
+    'amb_farol_alpha', 'amb_farol_period_s',
+    'oferta_cartel_bob_px', 'oferta_cartel_period_s',
+    'trans_asienta_mult', 'trans_spring_k', 'trans_spring_amort',
+    'trans_snap_squash',
+    'vuelo_arco_factor', 'vuelo_arco_min_px', 'vuelo_arco_max_px',
+    'vuelo_sombra_alpha', 'vuelo_item_escala',
   ],
+  // ★LOTE 4: niveles de vida del experimento (?vida=A|B|C) — fail-closed como
+  // el resto: sin la sección el boot LANZA (un default silencioso escondería
+  // qué paquete de fixes corre el build que juzga Gemini)
+  vida: ['nivel_default', 'niveles'],
   demo: [
     'accel_clientes', 'dur_post_renov_s', 'starter_reshow_s', 'tienda_open_t',
     'tienda_dur_s', 'vip_timeout_s', 'renov_regalo_t_s', 'fin_t_s',

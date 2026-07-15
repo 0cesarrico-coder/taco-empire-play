@@ -28,6 +28,8 @@ import { iniciarJuego } from './juego.js';
       lang: idioma,
       seed: seedM ? parseInt(seedM[1], 10) : juego.G.seed,
       demo: juego.G.autopilot,
+      vida: juego.G.vida,   // nivel del experimento L4 (A|B|C) — sin esto el
+                            // flywheel no sabría QUÉ build produjo cada sesión
     });
   } catch (e) {
     console.error('BOOT FALLÓ:', e);

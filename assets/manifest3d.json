@@ -84,16 +84,225 @@
    "h": 200,
    "kb": 4.2,
    "origen": "d7/pose3d_aburrido.png (flip)"
+  },
+  "cli_1_w1": {
+   "archivo": "cli3d_1_w1.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 7.0,
+   "origen": "cli_1/frames-walk/f1.png"
+  },
+  "cli_1_w2": {
+   "archivo": "cli3d_1_w2.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 6.5,
+   "origen": "cli_1/frames-walk/f2.png"
+  },
+  "cli_1_w3": {
+   "archivo": "cli3d_1_w3.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 6.1,
+   "origen": "cli_1/frames-walk/f3.png"
+  },
+  "cli_1_w4": {
+   "archivo": "cli3d_1_w4.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 6.5,
+   "origen": "cli_1/frames-walk/f4.png"
+  },
+  "cli_1_w5": {
+   "archivo": "cli3d_1_w5.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 6.9,
+   "origen": "cli_1/frames-walk/f5.png"
+  },
+  "cli_1_w6": {
+   "archivo": "cli3d_1_w6.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 6.4,
+   "origen": "cli_1/frames-walk/f6.png"
+  },
+  "cli_1_w7": {
+   "archivo": "cli3d_1_w7.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 6.1,
+   "origen": "cli_1/frames-walk/f7.png"
+  },
+  "cli_1_w8": {
+   "archivo": "cli3d_1_w8.webp",
+   "w": 96,
+   "h": 200,
+   "kb": 7.0,
+   "origen": "cli_1/frames-walk/f8.png"
+  },
+  "cli_1_celebra": {
+   "archivo": "cli3d_1_celebra.webp",
+   "w": 91,
+   "h": 200,
+   "kb": 6.3,
+   "origen": "cli_1/pose3d_celebra.png"
+  },
+  "cli_1_aburrido": {
+   "archivo": "cli3d_1_aburrido.webp",
+   "w": 85,
+   "h": 200,
+   "kb": 5.3,
+   "origen": "cli_1/pose3d_aburrido.png"
+  },
+  "cli_2_w1": {
+   "archivo": "cli3d_2_w1.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 7.2,
+   "origen": "cli_2/frames-walk/f1.png"
+  },
+  "cli_2_w2": {
+   "archivo": "cli3d_2_w2.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 6.8,
+   "origen": "cli_2/frames-walk/f2.png"
+  },
+  "cli_2_w3": {
+   "archivo": "cli3d_2_w3.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 6.9,
+   "origen": "cli_2/frames-walk/f3.png"
+  },
+  "cli_2_w4": {
+   "archivo": "cli3d_2_w4.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 7.4,
+   "origen": "cli_2/frames-walk/f4.png"
+  },
+  "cli_2_w5": {
+   "archivo": "cli3d_2_w5.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 8.2,
+   "origen": "cli_2/frames-walk/f5.png"
+  },
+  "cli_2_w6": {
+   "archivo": "cli3d_2_w6.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 7.9,
+   "origen": "cli_2/frames-walk/f6.png"
+  },
+  "cli_2_w7": {
+   "archivo": "cli3d_2_w7.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 7.2,
+   "origen": "cli_2/frames-walk/f7.png"
+  },
+  "cli_2_w8": {
+   "archivo": "cli3d_2_w8.webp",
+   "w": 111,
+   "h": 200,
+   "kb": 7.7,
+   "origen": "cli_2/frames-walk/f8.png"
+  },
+  "cli_2_celebra": {
+   "archivo": "cli3d_2_celebra.webp",
+   "w": 102,
+   "h": 200,
+   "kb": 7.5,
+   "origen": "cli_2/pose3d_celebra.png"
+  },
+  "cli_2_aburrido": {
+   "archivo": "cli3d_2_aburrido.webp",
+   "w": 81,
+   "h": 200,
+   "kb": 6.3,
+   "origen": "cli_2/pose3d_aburrido.png"
+  },
+  "cli_3_w1": {
+   "archivo": "cli3d_3_w1.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 7.6,
+   "origen": "cli_3/frames-walk/f1.png"
+  },
+  "cli_3_w2": {
+   "archivo": "cli3d_3_w2.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 6.4,
+   "origen": "cli_3/frames-walk/f2.png"
+  },
+  "cli_3_w3": {
+   "archivo": "cli3d_3_w3.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 7.0,
+   "origen": "cli_3/frames-walk/f3.png"
+  },
+  "cli_3_w4": {
+   "archivo": "cli3d_3_w4.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 6.9,
+   "origen": "cli_3/frames-walk/f4.png"
+  },
+  "cli_3_w5": {
+   "archivo": "cli3d_3_w5.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 6.7,
+   "origen": "cli_3/frames-walk/f5.png"
+  },
+  "cli_3_w6": {
+   "archivo": "cli3d_3_w6.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 6.4,
+   "origen": "cli_3/frames-walk/f6.png"
+  },
+  "cli_3_w7": {
+   "archivo": "cli3d_3_w7.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 7.2,
+   "origen": "cli_3/frames-walk/f7.png"
+  },
+  "cli_3_w8": {
+   "archivo": "cli3d_3_w8.webp",
+   "w": 94,
+   "h": 200,
+   "kb": 6.5,
+   "origen": "cli_3/frames-walk/f8.png"
+  },
+  "cli_3_celebra": {
+   "archivo": "cli3d_3_celebra.webp",
+   "w": 102,
+   "h": 200,
+   "kb": 7.2,
+   "origen": "cli_3/pose3d_celebra.png"
+  },
+  "cli_3_aburrido": {
+   "archivo": "cli3d_3_aburrido.webp",
+   "w": 90,
+   "h": 200,
+   "kb": 6.3,
+   "origen": "cli_3/pose3d_aburrido.png"
   }
  },
  "_cast": {
   "integrados_3d": [
-   0
-  ],
-  "flat_temporal": [
+   0,
    1,
    2,
    3
-  ]
+  ],
+  "flat_temporal": []
  }
 }

@@ -221,6 +221,27 @@
     "vuelo_sombra_alpha": { "valor": 0.15, "fuente": "DESIGNED", "evidencia": "★F7: alpha de la sombra elíptica que acompaña el vuelo del taco EN EL SUELO (ancla visual — A3: la sombra de contacto ata el objeto al mundo); se encoge y aclara con la altura del ítem" },
     "vuelo_item_escala": { "valor": 0.88, "fuente": "DESIGNED", "evidencia": "★F7: escala del taco en vuelo (−12%, banda 10-15% del fix): más chico = leído más lejos del ojo, menos 'pegado a la cámara'" }
   },
+  "look3d": {
+    "_nota": "★LOTE 5 — BUILD EXPERIMENTAL ?look=3d (pedido 👤 2026-07-15 'llevar y montar estos assets en el JUEGO REAL'): cara visual 3D-soft del D7 sobre el motor SIN tocar mecánica ni juice. Evidencia base: corpus/prototipos/c-lote5/d7-producibilidad-3d.json (walk 3D juez 9.65 global, identidad 10/10, XOR vecinos ≥15%). Fondos = dioramas c-lote6 renovacion-R1 (puesto, nivel 1) y renovacion-R3 (taquería, nivel 3), banda de escena crop canónico (0,208,768,852) escala 540/768 pegada en y0=196 (medición por rejilla 2026-07-15; conversión game = band×0.7031 + y0). Nivel 2 SIN diorama aún → hereda el fondo E2 flat (deuda lote 6). Sin ?look=3d NADA de esto corre: el default flat (gate 8.883) queda intacto.",
+    "fondos_niveles": { "valor": [1, 3], "fuente": "DESIGNED", "evidencia": "niveles con diorama 3D disponible esta noche: R1 (puesto) y R3 (taquería) de c-lote6; R2 (local) no existe → nivel 2 hereda flat, documentado como deuda lote 6" },
+    "carril_por_nivel": { "valor": {
+      "1": { "y": 570, "x_entrada": 2 },
+      "3": { "y": 604, "x_entrada": 2 }
+    }, "fuente": "DESIGNED", "evidencia": "patrón F6 carril por nivel aplicado a la banqueta de cada diorama — R1: plataforma del puesto (clientes horneados de la derecha pisan y≈572 game; la fila viva ocupa la zona IZQUIERDA vacía del diorama); R3: pies de la fila horneada ≈600 → la viva pisa 604 (delante, profundidad correcta). Medido por rejilla sobre la banda (0,208,768,852)" },
+    "cliente_alto_por_nivel": { "valor": { "1": 74, "3": 84 }, "fuente": "DESIGNED", "evidencia": "escala coherente con la puerta/mostrador de cada diorama: gente horneada R1 ≈67px game y R3 ≈78-82px game (medición por rejilla); la fila viva va 8-10% mayor por estar delante (profundidad). Ratio vs flat 112: 0.66 (R1) — consistente con el ratio del comal 30/52" },
+    "comal_por_nivel": { "valor": {
+      "1": { "x": 218, "y": 495, "rx": 30, "ry": 12 },
+      "3": { "x": 313, "y": 548, "rx": 32, "ry": 13 }
+    }, "fuente": "DESIGNED", "evidencia": "el aro/hit del tap se alinea al comal DIBUJADO de cada diorama (R1: sartén bajo la llama en banda (310,425) → game (218,495); R3: sartén (445,500) → (313,548)). rx≥30 mantiene el tap perdonador (hit lógico con tap_hit_factor 1.4 ≈ 112-123px de ancho, banda fitts); las tortillas procedurales (offsets ±22 hardcoded) siguen dentro del disco" },
+    "amb_farol_por_nivel": { "valor": {
+      "1": { "x": 464, "y": 431, "r": 26 },
+      "3": { "x": 464, "y": 428, "r": 26 }
+    }, "fuente": "DESIGNED", "evidencia": "★F4 sobre el farol HORNEADO de cada diorama (ambos traen poste a la derecha, cabeza ≈(660,330) banda → (464,428-431) game); mismo mecanismo del flat (halo pulsante sutil, jamás recortar el fondo)" },
+    "vapor_nivel1": { "valor": { "x": 218, "y": 478 }, "fuente": "DESIGNED", "evidencia": "★F4 segunda boca de vapor del nivel 1: en flat era la bandeja del carrito s7; en R1 el carrito no existe (puesto horneado) → el vapor ambiental emite sobre la sartén/llama del diorama (justo encima del comal 3d)" },
+    "starter_banda": { "valor": { "x": 208, "y": 224, "w": 322, "h": 118 }, "fuente": "DESIGNED", "evidencia": "en 3D la banda flat (y 518-636) taparía el comal del diorama R1 (y 495) — misma cura que la calibración r2 flat: banda reubicada a la franja de CIELO (y 224-342, bajo la fila de chips y sobre el letrero del puesto ~y 365), libre del comal, de la fila viva y del panel" },
+    "carrito_visible": { "valor": false, "fuente": "DESIGNED", "evidencia": "el diorama R1 hornea el puesto COMPLETO (mostrador+toldo+taquero) — el sprite del carrito s7 flat encima sería doble puesto y choque de estilo; el ancla de gameplay sigue siendo el comal procedural alineado al del diorama (patrón 'se leen como uno' del registro C-LOTES)" },
+    "props_escala": { "valor": 0.62, "fuente": "DESIGNED", "evidencia": "screenshot del boot 3d 2026-07-15: los props E2 a escala flat (mesa w128/mostrador w160, calibrados para gente de 112px) ENANIZAN el diorama R1 (gente 74px) — se dibujan al 62% en look=3d (banda de los ratios medidos: cliente 74/112=0.66, comal 30/52=0.58), mismas anclas x/base (ya caen en la franja de calle del diorama). Mezcla flat-sobre-3D temporal DOCUMENTADA — props 3D nativos = deuda lote 6" }
+  },
   "vida": {
     "_nota": "★LOTE 4 — knob del experimento NIVELES DE VIDA (aprobado 👤 2026-07-14 'paquete completo + niveles de vida'): ?vida=A|B|C elige qué paquete de fixes de animación corre el motor. Sin param = nivel_default. F1 (identidad de poses) NO está aquí: son assets que se regeneran aparte, no código del motor. El playable hornea nivel_default (no lee query params en MRAID).",
     "nivel_default": { "valor": "C", "fuente": "DESIGNED", "evidencia": "C = paquete completo, candidato a producción (smoke y playable gatean este nivel); A/B existen para las rondas del juez del experimento (TAQUERIA-LOTE4-PROPUESTA vía niveles-de-vida, predicciones pre-registradas)" },

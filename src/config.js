@@ -89,6 +89,15 @@ const REQUERIDAS = {
   // el resto: sin la sección el boot LANZA (un default silencioso escondería
   // qué paquete de fixes corre el build que juzga Gemini)
   vida: ['nivel_default', 'niveles'],
+  // ★LOTE 5: BUILD EXPERIMENTAL ?look=3d (D7 producibilidad 3D) — geometría
+  // de la cara 3D (dioramas c-lote6 + cast D7). Sin el param el motor NO lee
+  // nada de aquí en runtime, pero la sección es requerida igual (fail-closed:
+  // un build sin ella no sabría qué geometría corre el modo experimental)
+  look3d: [
+    'fondos_niveles', 'carril_por_nivel', 'cliente_alto_por_nivel',
+    'comal_por_nivel', 'amb_farol_por_nivel', 'vapor_nivel1',
+    'starter_banda', 'carrito_visible', 'props_escala',
+  ],
   demo: [
     'accel_clientes', 'dur_post_renov_s', 'starter_reshow_s', 'tienda_open_t',
     'tienda_dur_s', 'vip_timeout_s', 'renov_regalo_t_s', 'fin_t_s',

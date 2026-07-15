@@ -88,6 +88,18 @@ const FIX = (() => {
   return { F2:s.has('F2'), F3:s.has('F3'), F4:s.has('F4'),
            F5:s.has('F5'), F6:s.has('F6'), F7:s.has('F7') };
 })();
+/* ★LOTE 5 — BUILD EXPERIMENTAL ?look=3d (pedido 👤 2026-07-15): cara visual
+   3D del D7 (dioramas c-lote6 + cast 3D-soft juez 9.65/identidad 10) SIN
+   tocar mecánica ni juice. Los assets 3D los cargó main.js (manifest3d
+   fail-closed re-apunta los MISMOS keys); aquí solo vive la GEOMETRÍA por
+   nivel (config §look3d). Sin el param TODO esto es inerte: el default flat
+   (gate 8.883) queda intacto. Clase de un solo valor en el regex — sin
+   riesgo de alternancia golosa (lección ?hud=s7|s77). */
+const LOOK3D = /[?&]look=3d(?![\w])/.test(location.search);
+const L3D = CFG.look3d;
+/* ¿el nivel n usa diorama 3D? (niveles sin diorama heredan el flat E2 —
+   mezcla temporal DOCUMENTADA del build experimental: R2/local no existe) */
+function esNivel3d(n){ return LOOK3D && L3D.fondos_niveles.includes(n); }
 
 /* ---------- PRNG determinista (mulberry32) ---------- */
 function mulberry32(a){ return function(){
@@ -141,6 +153,7 @@ const G = {
   autopilot: DEMO_MODE, seed, lang,
   tapsManual:0, tapAroOn:false, tapHintOn:false,   // fix UX 👤 "el tap no se ve"
   vida: VIDA,               // nivel del experimento L4 (telemetría + smoke)
+  look3d: LOOK3D,           // ★LOTE 5: build experimental (telemetría + smoke)
 };
 window.__game = G;
 
@@ -155,9 +168,25 @@ let slowmoHasta = -1;          // simTime hasta el que dura el slow-mo de rescat
 
 /* ---------- geometría de la escena ---------- */
 const STAND = { cx:330, postL:206, postR:454, toldoY:300, counterY:470, baseY:560 };
-const COMAL = { x:272, y:460, rx:52, ry:20 };
+/* COMAL: ancla del verbo. En flat vive fijo en (272,460) — geometría P4 que
+   los fondos E2 respetan. En ?look=3d el aro/hit se ALINEA al comal DIBUJADO
+   del diorama del nivel actual (knob §look3d.comal_por_nivel), así que el
+   objeto es mutable y aplicarLookNivel() lo re-ancla al cambiar de nivel. */
+const COMAL_FLAT = { x:272, y:460, rx:52, ry:20 };
+const COMAL = { ...COMAL_FLAT };
 const SIDEWALK_Y = 592;
 function slotX(i){ return 150 - i*54; }
+/* re-ancla el comal al nivel ACTUAL (boot + cada renovación). Los gradientes
+   cacheados del comal dependen de rx → se invalidan si el ancla cambió. */
+function aplicarLookNivel(){
+  const n = Math.min(G.nivel, 3);
+  const c = esNivel3d(n) ? L3D.comal_por_nivel[String(n)] : COMAL_FLAT;
+  if (c.x !== COMAL.x || c.y !== COMAL.y || c.rx !== COMAL.rx || c.ry !== COMAL.ry){
+    Object.assign(COMAL, c);
+    gradComal = null; gradGlowTap = null;
+  }
+}
+aplicarLookNivel();   // el nivel 1 puede arrancar ya en diorama 3D
 /* ★F6 (L4, L7 clipping/pop-in sev 5-8 — popin-78.25/78.75.png): carril de
    banqueta POR NIVEL DE RENOVACIÓN. La ruta y=592 estaba calibrada para el
    PUESTO (fondo_1); en el nivel 3 caía DENTRO de la banda de ventanas del
@@ -168,7 +197,11 @@ function slotX(i){ return 150 - i*54; }
    carril 3 (mismo fondo). El cliente fija su carril al SPAWN — la renovación
    despide a todos ('sale') y los nuevos nacen ya en el carril correcto. */
 function carril(){
-  return FIX.F6 ? V.carril_por_nivel[String(Math.min(G.nivel, 3))]
+  const n = Math.min(G.nivel, 3);
+  // ★look=3d: carril de la banqueta del DIORAMA (misma doctrina F6, knob
+  // §look3d) — niveles sin diorama caen al carril flat de siempre
+  if (esNivel3d(n)) return L3D.carril_por_nivel[String(n)];
+  return FIX.F6 ? V.carril_por_nivel[String(n)]
                 : { y: SIDEWALK_Y, x_entrada: 2 };
 }
 
@@ -1014,8 +1047,12 @@ function update(dt){
     const nV = Math.max(1, Math.round(J.amb_vapor_cada_s / TICK));
     const comalOn = G.nivel >= 2 || construcciones[0].comprada;
     if (comalOn && (G.tick % nV) === 0) vapor(COMAL.x, COMAL.y-12, 1);
-    if (G.nivel === 1 && ((G.tick + (nV >> 1)) % nV) === 0)
-      vapor(V.amb_carrito_vapor.x, V.amb_carrito_vapor.y, 1);
+    if (G.nivel === 1 && ((G.tick + (nV >> 1)) % nV) === 0){
+      // ★look=3d: sin carrito s7 en el diorama R1 la 2ª boca de vapor emite
+      // sobre la sartén/llama horneada del puesto (knob §look3d.vapor_nivel1)
+      const vp = esNivel3d(1) ? L3D.vapor_nivel1 : V.amb_carrito_vapor;
+      vapor(vp.x, vp.y, 1);
+    }
   }
 
   // ---- redes de seguridad de terminación: SOLO el demo autopilot.
@@ -1190,6 +1227,7 @@ function updateRenov(dt){
   if (t > 0.7 && !renov.swapped){       // telón cerrado: swap del puesto
     renov.swapped = true;
     G.renovaciones++; G.nivel = G.renovaciones + 1; G.renovT = G.simTime;
+    aplicarLookNivel();   // ★look=3d: re-ancla el comal al diorama del nivel
     TELE.evento('nivel', { nivel:G.nivel });
     // ★ RESET a costos base en CADA local (escalera n55; local 4+ re-usa la
     //   tanda 3 con curva fresca — el multiplicador vive en ingresoVenta)
@@ -1507,7 +1545,10 @@ function comprada(i){ return construcciones[i] && construcciones[i].comprada; }
 let gradFarol = null, gradFarolNivel = 0;
 function drawAmbiente(){
   const n = Math.min(G.nivel, 3);
-  const F = V.amb_farol_por_nivel[String(n)];
+  // ★look=3d: el halo pulsa sobre el farol horneado del DIORAMA (ambos
+  // dioramas traen poste a la derecha; posiciones medidas, knob §look3d)
+  const F = esNivel3d(n) ? L3D.amb_farol_por_nivel[String(n)]
+                         : V.amb_farol_por_nivel[String(n)];
   if (!F) return;
   if (!gradFarol || gradFarolNivel !== n){     // cacheado por nivel (perf)
     gradFarol = ctx.createRadialGradient(0,0,F.r*0.25, 0,0,F.r*2.2);
@@ -1527,6 +1568,10 @@ function drawAmbiente(){
 
 function drawPuesto(){
   if (G.nivel === 1){
+    // ★look=3d: el diorama R1 hornea el puesto COMPLETO (mostrador+toldo+
+    // taquero) — el carrito s7 flat encima sería doble puesto (knob
+    // §look3d.carrito_visible); el ancla de gameplay sigue siendo el comal
+    if (esNivel3d(1) && !L3D.carrito_visible) return;
     const c = V.carrito;
     const im = IMG.carrito;
     const h = c.w * im.height / im.width;
@@ -1558,8 +1603,12 @@ function drawProps(){
     const c = construcciones[i];
     if (!c || !c.comprada) continue;
     const key = PROP_KEYS[i], P = V.props[key], im = IMG['prop_' + key];
-    const w = P.w != null ? P.w : P.h * im.width / im.height;
-    const h = P.h != null ? P.h : P.w * im.height / im.width;
+    // ★look=3d: los props E2 flat (escala de gente 112px) se dibujan al
+    // props_escala sobre el diorama (gente 74px) — mismas anclas x/base,
+    // mezcla temporal documentada (props 3D nativos = deuda lote 6)
+    const e3 = esNivel3d(1) ? L3D.props_escala : 1;
+    const w = (P.w != null ? P.w : P.h * im.width / im.height) * e3;
+    const h = (P.h != null ? P.h : P.w * im.height / im.width) * e3;
     const sy = c.propSc.x, sx = clamp(2 - sy, 0.6, 1.4);   // squash del spawn
     ctx.save();
     // sombra procedural pegada al piso (el flood-fill del pipeline come la
@@ -1927,7 +1976,12 @@ function drawCliente(c){
   // anticipación de freno (c.ln/c.sq, premiados por el juez) se aplican como
   // TRANSFORM sobre el frame del ciclo
   const im = IMG[spriteKeyCliente(c)];
-  const h = V.cliente_alto_px, w = h * im.width / im.height;
+  // ★look=3d: escala del cliente coherente con la puerta/mostrador del
+  // diorama del nivel (knob §look3d.cliente_alto_por_nivel; flat = 112)
+  const nAlto = Math.min(G.nivel, 3);
+  const h = esNivel3d(nAlto) ? L3D.cliente_alto_por_nivel[String(nAlto)]
+                             : V.cliente_alto_px;
+  const w = h * im.width / im.height;
   if (c.dir < 0){ ctx.scale(-1, 1); }          // mira hacia la marcha
   ctx.drawImage(im, -w/2, -h+2, w, h);
   if (c.dir < 0){ ctx.scale(-1, 1); }
@@ -2295,7 +2349,10 @@ function drawPanel(){
 function drawStarter(){
   if (!G.starterShown || starter.comprada) return;
   const resta = starter.fin - G.simTime;
-  const B = V.starter_banda;
+  // ★look=3d: la banda flat (y 518-636) taparía el comal del diorama R1
+  // (y 495) — banda reubicada a la franja de cielo (knob §look3d, misma
+  // doctrina de la cura r2 que ya movió esta banda una vez)
+  const B = LOOK3D ? L3D.starter_banda : V.starter_banda;
   if (starter.visible && !starter.min){
     const k = starter.sl.x;
     ctx.save();

@@ -1,0 +1,99 @@
+{
+ "_fuente": "BUILD EXPERIMENTAL ?look=3d — LOTE 5 D7 (cli_0 walk 9.65, identidad 10/10, corpus c-lote5/d7-producibilidad-3d.json) + d7-full (cast en producción; integrados los completos) + dioramas c-lote6 renovacion-R1/R3. Overrides de los keys del manifest base — SOLO se carga con ?look=3d (cargarAssetsExtra). Procesado por preparar_assets_3d.py",
+ "imagenes": {
+  "fondo_1": {
+   "archivo": "fondo3d_1.webp",
+   "w": 540,
+   "h": 960,
+   "kb": 9.6,
+   "origen": "c-lote6/renovacion-R1.png banda (0, 208, 768, 852) y0=196"
+  },
+  "fondo_3": {
+   "archivo": "fondo3d_3.webp",
+   "w": 540,
+   "h": 960,
+   "kb": 20.9,
+   "origen": "c-lote6/renovacion-R3.png banda (0, 208, 768, 852) y0=196"
+  },
+  "cli_0_w1": {
+   "archivo": "cli3d_0_w1.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 6.0,
+   "origen": "d7/frames-walk/f1.png (flip)"
+  },
+  "cli_0_w2": {
+   "archivo": "cli3d_0_w2.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 5.4,
+   "origen": "d7/frames-walk/f2.png (flip)"
+  },
+  "cli_0_w3": {
+   "archivo": "cli3d_0_w3.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 5.1,
+   "origen": "d7/frames-walk/f3.png (flip)"
+  },
+  "cli_0_w4": {
+   "archivo": "cli3d_0_w4.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 5.4,
+   "origen": "d7/frames-walk/f4.png (flip)"
+  },
+  "cli_0_w5": {
+   "archivo": "cli3d_0_w5.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 6.0,
+   "origen": "d7/frames-walk/f5.png (flip)"
+  },
+  "cli_0_w6": {
+   "archivo": "cli3d_0_w6.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 5.5,
+   "origen": "d7/frames-walk/f6.png (flip)"
+  },
+  "cli_0_w7": {
+   "archivo": "cli3d_0_w7.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 4.6,
+   "origen": "d7/frames-walk/f7.png (flip)"
+  },
+  "cli_0_w8": {
+   "archivo": "cli3d_0_w8.webp",
+   "w": 86,
+   "h": 200,
+   "kb": 5.7,
+   "origen": "d7/frames-walk/f8.png (flip)"
+  },
+  "cli_0_celebra": {
+   "archivo": "cli3d_0_celebra.webp",
+   "w": 67,
+   "h": 200,
+   "kb": 4.7,
+   "origen": "d7/pose3d_celebra.png (flip)"
+  },
+  "cli_0_aburrido": {
+   "archivo": "cli3d_0_aburrido.webp",
+   "w": 55,
+   "h": 200,
+   "kb": 4.2,
+   "origen": "d7/pose3d_aburrido.png (flip)"
+  }
+ },
+ "_cast": {
+  "integrados_3d": [
+   0
+  ],
+  "flat_temporal": [
+   1,
+   2,
+   3
+  ]
+ }
+}

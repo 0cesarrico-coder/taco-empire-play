@@ -6,9 +6,9 @@
 
 export const IMG = {};
 
-export async function cargarAssets(base = '.') {
-  const res = await fetch(`${base}/assets/manifest.json`);
-  if (!res.ok) throw new Error(`no pude cargar assets/manifest.json (${res.status})`);
+async function cargarManifest(base, archivo) {
+  const res = await fetch(`${base}/assets/${archivo}`);
+  if (!res.ok) throw new Error(`no pude cargar assets/${archivo} (${res.status})`);
   const man = await res.json();
   const nombres = Object.keys(man.imagenes);
   await Promise.all(nombres.map(async nombre => {
@@ -24,4 +24,17 @@ export async function cargarAssets(base = '.') {
     IMG[nombre] = im;
   }));
   return man;
+}
+
+export async function cargarAssets(base = '.') {
+  return cargarManifest(base, 'manifest.json');
+}
+
+/* ★LOTE 5 — BUILD EXPERIMENTAL ?look=3d: manifest de OVERRIDES (mismos keys
+   del motor → archivos 3D del D7/c-lote6). Solo se carga con el param: el
+   modo default no paga ni un byte extra. Fail-closed igual que el base: si
+   falta un archivo 3D, el boot del modo experimental FALLA (el smoke lo caza),
+   jamás degrada en silencio a mezcla no documentada. */
+export async function cargarAssetsExtra(base = '.', archivo = 'manifest3d.json') {
+  return cargarManifest(base, archivo);
 }
